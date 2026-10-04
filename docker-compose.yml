@@ -14,8 +14,8 @@ services:
 
   server:
     build:
-      context: ./server
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: server/Dockerfile
     container_name: twingle-server
     restart: unless-stopped
     ports:
@@ -29,14 +29,11 @@ services:
       - CLIENT_URL=${CLIENT_URL}
     depends_on:
       - mongodb
-    volumes:
-      - ./server:/app
-      - /app/node_modules
 
   client:
     build:
-      context: ./client
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: client/Dockerfile
     container_name: twingle-client
     restart: unless-stopped
     ports:

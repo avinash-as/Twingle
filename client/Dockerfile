@@ -2,14 +2,21 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Copy root package files for monorepo
 COPY package*.json ./
 
-RUN npm ci
+# Copy client package.json
+COPY client/package*.json ./client/
 
+# Install all dependencies (including workspaces)
+RUN npm ci --workspaces
+
+# Copy source code
 COPY . .
 
-RUN npm run build
+# Build client
+RUN npm run build --workspace=client
 
 EXPOSE 5173
 
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "5173"]
+CMD ["npm", "run", "preview", "--workspace=client", "--", "--host", "0.0.0.0", "--port", "5173"]
