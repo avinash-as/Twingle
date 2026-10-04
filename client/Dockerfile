@@ -5,8 +5,9 @@ WORKDIR /app
 # Copy root package files for monorepo
 COPY package*.json ./
 
-# Copy client package.json
-COPY client/package*.json ./client/
+# Copy workspace package files
+COPY server/package*.json server/
+COPY client/package*.json client/
 
 # Install all dependencies (including workspaces)
 RUN npm ci --workspaces
