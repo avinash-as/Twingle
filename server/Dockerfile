@@ -2,18 +2,11 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy root package files for monorepo
-COPY package*.json ./
-
-# Copy workspace package files
-COPY server/package*.json server/
-COPY client/package*.json client/
-
-# Install all dependencies (including workspaces)
-RUN npm ci --workspaces --omit=dev
-
-# Copy source code
+# Copy all source files first
 COPY . .
+
+# Install dependencies using workspaces
+RUN npm ci --workspaces --omit=dev
 
 EXPOSE 5000
 
