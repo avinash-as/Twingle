@@ -1,8 +1,8 @@
 import express from 'express';
 import {
-  sendMessage,
-  getMessages,
   getConversations,
+  getMessages,
+  sendMessage,
   markAsRead,
 } from '../controllers/messageController.js';
 import { protect } from '../middleware/auth.js';

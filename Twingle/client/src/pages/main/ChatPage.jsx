@@ -1,162 +1,128 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, Paperclip, Mic, Smile, MoreVertical, Check, CheckCheck, UserCheck, WifiOff, Image, FileText } from 'lucide-react';
-import { format } from 'date-fns';
-import { useChat } from '../../hooks/useChat';
+import { ArrowLeft, Send, Paperclip, Smile, MoreVertical, CheckCheck } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
-import Header from '../../components/common/Header';
-import MessageBubble from '../../components/chat/MessageBubble';
-import ChatInput from '../../components/chat/ChatInput';
-import TypingIndicator from '../../components/chat/TypingIndicator';
+import { useChat } from '../../hooks/useChat';
 import Avatar from '../../components/ui/Avatar';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
+import MessageBubble from '../../components/chat/MessageBubble';
+import ChatInput from '../../components/chat/ChatInput';
+import TypingIndicator from '../../components/chat/TypingIndicator';
+import EmptyState from '../../components/common/EmptyState';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 
-const ChatPage = () => {
+export default function ChatPage() {
+  const { user: currentUser } = useAuth();
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  
-  const {
-    messages,
-    loading,
-    sending,
-    typingUsers,
-    sendMessage,
-    handleTyping,
-    handleStopTyping,
-    handleMarkAsRead,
-    messagesEndRef,
-    refetch,
-  } = useChat(userId);
-
+  const { messages, loading, sending, activeConversation, fetchMessages, sendMessage, markAsRead, clearActiveConversation } = useChat();
+  const [typing, setTyping] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState(null);
+  const messagesEndRef = useRef(null);
   const [showMenu, setShowMenu] = useState(false);
-  const [showAttachments, setShowAttachments] = useState(false);
 
   useEffect(() => {
-    handleMarkAsRead();
-  }, [messages, handleMarkAsRead]);
+    if (userId && userId !== activeConversation) {
+      fetchMessages(userId);
+    }
+  }, [userId, activeConversation, fetchMessages]);
 
-  const otherUser = messages.length > 0 
-    ? messages.find(m => m.sender._id !== user?._id)?.sender 
-    : null;
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  const handleSend = (message) => {
-    sendMessage(message);
+  useEffect(() => {
+    if (activeConversation) {
+      markAsRead(activeConversation);
+    }
+    return () => clearActiveConversation();
+  }, [activeConversation, markAsRead, clearActiveConversation]);
+
+  const handleSend = useCallback(async (content) => {
+    if (typingTimeout) clearTimeout(typingTimeout);
+    setTyping(false);
+    await sendMessage(userId, content);
+  }, [userId, sendMessage, typingTimeout]);
+
+  const handleTyping = () => {
+    setTyping(true);
+    if (typingTimeout) clearTimeout(typingTimeout);
+    setTypingTimeout(setTimeout(() => setTyping(false), 2000));
   };
 
-  if (loading) {
+  const otherUser = messages[0]?.sender === currentUser?._id ? messages[0]?.receiver : messages[0]?.sender;
+
+  if (loading && messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-background">
+      <div className="flex-1 flex items-center justify-center bg-[#0B0B12]">
         <LoadingSpinner size="lg" />
       </div>
     );
   }
 
-  if (!otherUser && !userId) {
+  if (!otherUser && messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-background">
-        <div className="text-center">
-          <p className="text-dark-500">Chat not found</p>
-        </div>
-      </div>
+      <EmptyState
+        icon={Chat}
+        title="Start a conversation"
+        description="Send a message to break the ice"
+      />
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-background">
-      <Header
-        title={otherUser?.name || 'Chat'}
-        showBack
-        onBack={() => navigate('/chats')}
-        actions={
-          <div className="flex items-center gap-2">
-            <Badge variant={otherUser?.isOnline ? 'success' : 'gray'} className="gap-1.5">
-              {otherUser?.isOnline ? (
-                <>
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                  </span>
-                  Online
-                </>
-              ) : (
-                <>
-                  <WifiOff className="w-3.5 h-3.5" />
-                  Offline
-                </>
-              )}
-            </Badge>
-            <div className="relative">
-              <button
-                onClick={() => setShowMenu(!showMenu)}
-                className="p-2 rounded-xl hover:bg-dark-100 dark:hover:bg-dark-800 transition-colors"
-                aria-label="More options"
-              >
-                <MoreVertical className="w-5 h-5 text-dark-600" />
-              </button>
-              {showMenu && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
-                  <div className="fixed top-14 right-4 z-50 w-48 bg-white dark:bg-dark-800 rounded-xl shadow-lg border border-dark-200 dark:border-dark-700 py-2 animate-in">
-                    <button
-                      onClick={() => { setShowMenu(false); navigate(`/profile/${otherUser?.id}`); }}
-                      className="flex items-center gap-3 w-full px-4 py-3 text-dark-700 dark:text-dark-200 hover:bg-dark-100 dark:hover:bg-dark-700 text-left"
-                    >
-                      <UserCheck className="w-5 h-5" />
-                      View Profile
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        }
-      />
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4" role="log" aria-live="polite">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center px-6">
-              <div className="w-16 h-16 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center mb-4">
-                <MessageSquare className="w-8 h-8 text-primary-500 dark:text-primary-400" />
-              </div>
-              <h3 className="text-lg font-medium text-dark-900 dark:text-dark-100 mb-1">No messages yet</h3>
-              <p className="text-dark-500 dark:text-dark-400 max-w-xs">
-                Say hello to {otherUser?.name || 'your new connection'}!
-              </p>
-            </div>
-          ) : (
-            messages.map((message, index) => (
-              <MessageBubble
-                key={message._id}
-                message={message}
-                currentUserId={user?._id}
-                showAvatar={index === 0 || messages[index - 1]?.sender._id !== message.sender._id}
-              />
-            ))
-          )}
-          
-          {typingUsers.size > 0 && (
-            <TypingIndicator userName={otherUser?.name || 'Someone'} />
-          )}
-          
-          <div ref={messagesEndRef} />
+    <div className="flex-1 flex flex-col bg-[#0B0B12]">
+      <header className="flex items-center gap-3 px-4 py-3 bg-[#0B0B12]/95 backdrop-blur-md border-b border-neutral-800/50 sticky top-0 z-20">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-2 rounded-xl bg-neutral-800/50 text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors lg:hidden"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <Avatar src={otherUser?.avatar} name={otherUser?.name} size="md" status={otherUser?.isOnline ? 'online' : 'offline'} />
+        <div className="flex-1 min-w-0">
+          <h2 className="font-semibold text-white truncate">{otherUser?.name}</h2>
+          <p className="text-xs text-neutral-500 flex items-center gap-1">
+            {otherUser?.isOnline ? (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                Online
+              </>
+            ) : (
+              <>
+                <span className="w-1.5 h-1.5 rounded-full bg-neutral-500" />
+                Last seen {formatDistanceToNow(new Date(otherUser?.lastSeen), { addSuffix: true })}
+              </>
+            )}
+          </p>
         </div>
+        <button className="p-2 rounded-xl bg-neutral-800/50 text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors">
+          <MoreVertical className="w-5 h-5" />
+        </button>
+      </header>
 
-        {/* Input */}
-        <ChatInput
-          onSend={handleSend}
-          onTyping={handleTyping}
-          onStopTyping={handleStopTyping}
-          disabled={sending}
-          placeholder={`Message ${otherUser?.name || ''}`}
-        />
+      <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesEndRef}>
+        {messages.map((message, index) => (
+          <MessageBubble
+            key={message._id}
+            message={message}
+            isOwn={message.sender === currentUser._id}
+            user={message.sender === currentUser._id ? null : otherUser}
+          />
+        ))}
+        {typing && (
+          <TypingIndicator userName={otherUser?.name} />
+        )}
+        <div ref={messagesEndRef} />
       </div>
+
+      <ChatInput
+        onSend={handleSend}
+        disabled={sending}
+        placeholder="Type a message..."
+      />
     </div>
   );
-};
-
-export default ChatPage;
+}

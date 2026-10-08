@@ -31,6 +31,8 @@ const io = new Server(httpServer, {
   },
 });
 
+app.set('trust proxy', 1);
+
 app.use(helmet());
 app.use(cors({ origin: config.clientUrl, credentials: true }));
 app.use(express.json({ limit: '10mb' }));

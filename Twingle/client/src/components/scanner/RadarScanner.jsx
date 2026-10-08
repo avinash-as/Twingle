@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Users, Wifi, UserCheck, Search, Sparkles } from 'lucide-react';
 
-const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
+const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0 }) => {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const sweepAngleRef = useRef(-Math.PI / 2);
@@ -12,34 +12,30 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
   const ctxRef = useRef(null);
   const dprRef = useRef(1);
   const canvasSizeRef = useRef({ width: 0, height: 0, cx: 0, cy: 0, maxR: 0 });
-  const isDarkRef = useRef(false);
   const colorsRef = useRef({});
 
-  // Memoize colors to avoid recalculation
-  const colors = useMemo(() => {
-    const isDark = document.documentElement.classList.contains('dark');
-    return {
-      isDark,
-      gridColor: isDark ? 'rgba(74, 222, 128, 0.05)' : 'rgba(34, 197, 94, 0.03)',
-      primaryColor: isDark ? '#4ade80' : '#22c55e',
-      primaryGlow: isDark ? 'rgba(74, 222, 128' : 'rgba(34, 197, 94',
-      textColor: isDark ? '#e2e8f0' : '#1e293b',
-      mutedColor: isDark ? '#64748b' : '#94a3b8',
-      clearColor: scanning ? 'rgba(15, 23, 42, 0.15)' : 'rgba(15, 23, 42, 0.3)',
-    };
-  }, [scanning]);
+  const colors = useMemo(() => ({
+    isDark: true,
+    gridColor: 'rgba(124, 58, 237, 0.08)',
+    primaryColor: '#7C3AED',
+    primaryGlow: 'rgba(124, 58, 237',
+    secondaryColor: '#22D3EE',
+    secondaryGlow: 'rgba(34, 211, 238',
+    textColor: '#F8FAFC',
+    mutedColor: '#A1A1AA',
+    clearColor: scanning ? 'rgba(11, 11, 18, 0.15)' : 'rgba(11, 11, 18, 0.3)',
+  }), [scanning]);
 
-  // Update found count with animation - optimized
   useEffect(() => {
     const target = scanCount || 0;
-    const duration = 300;
+    const duration = 400;
     const start = foundCount;
     const startTime = Date.now();
     
     const animate = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      const eased = progress * progress * (3 - 2 * progress); // smoother easing
+      const eased = 1 - Math.pow(1 - progress, 3);
       setFoundCount(Math.round(start + (target - start) * eased));
       
       if (progress < 1) {
@@ -49,7 +45,6 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
     animate();
   }, [scanCount, foundCount]);
 
-  // Setup canvas - only run once
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -63,7 +58,6 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
 
     ctxRef.current = ctx;
     dprRef.current = window.devicePixelRatio || 1;
-    isDarkRef.current = document.documentElement.classList.contains('dark');
 
     const resize = () => {
       const rect = canvas.parentElement.getBoundingClientRect();
@@ -81,7 +75,7 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
       
       const cx = width / 2;
       const cy = height / 2;
-      const maxR = Math.min(width, height) / 2 - 30;
+      const maxR = Math.min(width, height) / 2 - 25;
       
       canvasSizeRef.current = { width, height, cx, cy, maxR };
     };
@@ -95,7 +89,6 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
     };
   }, []);
 
-  // Animation loop - optimized
   const drawRadar = useCallback((timestamp) => {
     const ctx = ctxRef.current;
     if (!ctx) return;
@@ -106,11 +99,9 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
     const { cx, cy, maxR } = canvasSizeRef.current;
     const c = colorsRef.current;
 
-    // Clear
     ctx.fillStyle = c.clearColor;
     ctx.fillRect(0, 0, canvasSizeRef.current.width, canvasSizeRef.current.height);
 
-    // Grid circles - batch draw
     ctx.strokeStyle = c.gridColor;
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -121,8 +112,9 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
     }
     ctx.stroke();
 
-    // Crosshairs
-    ctx.setLineDash([8, 8]);
+    ctx.setLineDash([10, 10]);
+    ctx.strokeStyle = `${c.gridColor}80`;
+    ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(cx, cy - maxR);
     ctx.lineTo(cx, cy + maxR);
@@ -131,7 +123,6 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Distance labels - batch
     ctx.font = '10px system-ui, -apple-system, sans-serif';
     ctx.fillStyle = c.mutedColor;
     ctx.textAlign = 'center';
@@ -139,12 +130,11 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
     for (let i = 1; i <= 4; i++) {
       const r = (maxR / 4) * i;
       const dist = Math.round((r / maxR) * 5000);
-      ctx.fillText(`${dist}m`, cx + r + 15, cy);
+      ctx.fillText(`${dist}m`, cx + r + 12, cy);
     }
 
-    // Sweep animation
     if (scanning) {
-      const sweepSpeed = 1.5;
+      const sweepSpeed = 1.4;
       sweepAngleRef.current += sweepSpeed * deltaTime;
       if (sweepAngleRef.current > Math.PI * 3 / 2) {
         sweepAngleRef.current = -Math.PI / 2;
@@ -153,11 +143,10 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
       const angle = sweepAngleRef.current;
       const sweepLength = maxR;
 
-      // Trail arc - single path
-      const trailLength = 0.8;
+      const trailLength = 0.9;
       const gradient = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxR);
-      gradient.addColorStop(0, `${c.primaryGlow}, 0.12)`);
-      gradient.addColorStop(0.7, `${c.primaryGlow}, 0.03)`);
+      gradient.addColorStop(0, `${c.primaryGlow}, 0.15)`);
+      gradient.addColorStop(0.5, `${c.secondaryGlow}, 0.05)`);
       gradient.addColorStop(1, `${c.primaryGlow}, 0)`);
       
       ctx.fillStyle = gradient;
@@ -167,15 +156,14 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
       ctx.closePath();
       ctx.fill();
 
-      // Sweep line
       const x2 = cx + Math.cos(angle) * sweepLength;
       const y2 = cy + Math.sin(angle) * sweepLength;
       
       ctx.strokeStyle = c.primaryColor;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3;
       ctx.lineCap = 'round';
       ctx.shadowColor = c.primaryColor;
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 15;
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.lineTo(x2, y2);
@@ -183,48 +171,83 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
 
       ctx.shadowBlur = 0;
       
-      // Gradient line
       const lineGradient = ctx.createLinearGradient(cx, cy, x2, y2);
-      lineGradient.addColorStop(0, `${c.primaryGlow}, 0.5)`);
-      lineGradient.addColorStop(1, `${c.primaryGlow}, 0)`);
+      lineGradient.addColorStop(0, `${c.primaryGlow}, 0.6)`);
+      lineGradient.addColorStop(0.5, `${c.secondaryGlow}, 0.4)`);
+      lineGradient.addColorStop(1, `${c.secondaryGlow}, 0)`);
       ctx.strokeStyle = lineGradient;
-      ctx.lineWidth = 6;
+      ctx.lineWidth = 8;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.lineTo(x2, y2);
       ctx.stroke();
+
+      ctx.fillStyle = c.secondaryColor;
+      ctx.shadowColor = c.secondaryColor;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(x2, y2, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
     }
 
-    // Rings - filter and update in place
     const rings = ringsRef.current;
-    const primaryGlow = c.primaryGlow;
     for (let i = rings.length - 1; i >= 0; i--) {
       const ring = rings[i];
       if (ring.opacity <= 0) {
         rings.splice(i, 1);
         continue;
       }
-      ctx.strokeStyle = `${primaryGlow}, ${ring.opacity * 0.35})`;
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = `${ring.color}, ${ring.opacity * 0.4})`;
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(cx, cy, ring.radius, 0, Math.PI * 2);
       ctx.stroke();
-      ring.radius += 40 * deltaTime;
-      ring.opacity -= 0.5 * deltaTime;
+      ring.radius += 50 * deltaTime;
+      ring.opacity -= 0.45 * deltaTime;
     }
 
-    // Add new rings - limit to prevent buildup
-    if (scanning && rings.length < 8 && Math.random() < 0.01) {
-      rings.push({ radius: 20, opacity: 1 });
+    if (scanning && rings.length < 6 && Math.random() < 0.015) {
+      rings.push({ 
+        radius: 30, 
+        opacity: 1, 
+        color: Math.random() > 0.5 ? c.primaryGlow : c.secondaryGlow 
+      });
     }
 
-    // Nearby users - batch draw
+    if (scanning && particlesRef.current.length < 30 && Math.random() < 0.08) {
+      particlesRef.current.push({
+        x: Math.random() * canvasSizeRef.current.width,
+        y: Math.random() * canvasSizeRef.current.height,
+        vx: (Math.random() - 0.5) * 0.3,
+        vy: (Math.random() - 0.5) * 0.3,
+        life: 1,
+        size: Math.random() * 2 + 0.5,
+        color: Math.random() > 0.5 ? c.primaryColor : c.secondaryColor,
+      });
+    }
+
+    if (particlesRef.current.length > 0) {
+      particlesRef.current = particlesRef.current.filter(p => p.life > 0);
+      particlesRef.current.forEach(p => {
+        ctx.fillStyle = `${p.color}, ${p.life * 0.4})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 0.003;
+      });
+    }
+
     if (nearbyUsers.length > 0) {
-      const primaryGlow = c.primaryGlow;
-      const primaryColor = c.primaryColor;
-      const mutedColor = c.mutedColor;
-      const textColor = c.textColor;
+      const primaryGlow = 'rgba(124, 58, 237';
+      const secondaryGlow = 'rgba(34, 211, 238';
+      const primaryColor = '#7C3AED';
+      const secondaryColor = '#22D3EE';
+      const mutedColor = '#A1A1AA';
+      const textColor = '#F8FAFC';
       const now = timestamp;
       
       nearbyUsers.forEach((user, index) => {
@@ -233,8 +256,8 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
         const normalizedDistance = Math.min(user.distance / 5000, 1);
         const dotRadius = normalizedDistance * maxR;
         const baseAngle = (index * (Math.PI * 2)) / Math.max(nearbyUsers.length, 1);
-        const wobble = Math.sin(now / 800 + index) * 0.12;
-        const dotAngle = baseAngle + wobble;
+        const wobble = Math.sin(now / 800 + index) * 0.1;
+        const dotAngle = baseAngle + wobble + (scanning ? sweepAngleRef.current * 0.02 : 0);
         
         const x = cx + Math.cos(dotAngle) * dotRadius;
         const y = cy + Math.sin(dotAngle) * dotRadius;
@@ -242,71 +265,70 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
         const pulse = Math.sin(now / 250 + index * 2) * 0.2 + 0.8;
         const isOnline = user.isOnline !== false;
         const dotColor = isOnline ? primaryColor : mutedColor;
-        const glowColor = isOnline ? primaryGlow : `rgba(100, 116, 139`;
+        const glowColor = isOnline ? primaryGlow : `rgba(161, 161, 170`;
 
-        // Glow
-        ctx.fillStyle = `${glowColor}, ${0.2 * pulse})`;
+        ctx.fillStyle = `${glowColor}, ${0.25 * pulse})`;
         ctx.beginPath();
-        ctx.arc(x, y, 14 * pulse, 0, Math.PI * 2);
+        ctx.arc(x, y, 18 * pulse, 0, Math.PI * 2);
         ctx.fill();
 
-        // Ring
-        ctx.strokeStyle = `${glowColor}, ${0.3 * pulse})`;
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = `${glowColor}, ${0.4 * pulse})`;
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(x, y, 10 * pulse, 0, Math.PI * 2);
+        ctx.arc(x, y, 12 * pulse, 0, Math.PI * 2);
         ctx.stroke();
 
-        // Dot
         ctx.fillStyle = dotColor;
         ctx.shadowColor = dotColor;
-        ctx.shadowBlur = 6 * pulse;
+        ctx.shadowBlur = 8 * pulse;
         ctx.beginPath();
-        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.arc(x, y, 7, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
 
-        // Inner dot
-        ctx.fillStyle = isDarkRef.current ? '#0f172a' : '#ffffff';
+        ctx.fillStyle = '#0B0B12';
         ctx.beginPath();
-        ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
         ctx.fill();
+
+        if (scanning && Math.abs(dotAngle - sweepAngleRef.current) < 0.25) {
+          ctx.fillStyle = textColor;
+          ctx.font = '11px system-ui, -apple-system, sans-serif';
+          ctx.textAlign = 'left';
+          ctx.fillText(user.name || 'User', x + 14, y + 4);
+        }
       });
     }
 
-    // Center
-    const primaryColor = c.primaryColor;
+    const primaryColor = '#7C3AED';
     ctx.fillStyle = primaryColor;
     ctx.shadowColor = primaryColor;
-    ctx.shadowBlur = 15;
+    ctx.shadowBlur = 20;
     ctx.beginPath();
-    ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 11, 0, Math.PI * 2);
     ctx.fill();
     ctx.shadowBlur = 0;
 
     ctx.strokeStyle = primaryColor;
-    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(cx, cy, 13, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 16, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = isDarkRef.current ? '#0f172a' : '#ffffff';
+    ctx.fillStyle = '#0B0B12';
     ctx.beginPath();
-    ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
+    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
     ctx.fill();
 
     animationRef.current = requestAnimationFrame(drawRadar);
   }, [scanning, nearbyUsers]);
 
-  // Update colors ref when colors change
   useEffect(() => {
     colorsRef.current = colors;
-    isDarkRef.current = document.documentElement.classList.contains('dark');
   }, [colors]);
 
-  // Start/stop animation loop
   useEffect(() => {
-    if (scanning || nearbyUsers.length > 0 || ringsRef.current.length > 0) {
+    if (scanning || nearbyUsers.length > 0 || ringsRef.current.length > 0 || particlesRef.current.length > 0) {
       lastTimeRef.current = 0;
       animationRef.current = requestAnimationFrame(drawRadar);
     } else if (animationRef.current) {
@@ -320,55 +342,69 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount }) => {
   }, [scanning, nearbyUsers.length, drawRadar]);
 
   return (
-    <div className="relative w-full aspect-square max-w-[340px] mx-auto">
+    <div className="relative w-full aspect-square max-w-[380px] mx-auto">
       <canvas 
         ref={canvasRef} 
         className="w-full h-full" 
-        aria-label="Radar scanner" 
+        aria-label="Radar scanner detecting nearby users" 
         style={{ willReadFrequently: false }}
       />
       
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="relative">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-2xl animate-glow-pulse">
-            <Users className="w-10 h-10 text-white" />
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-600 via-primary-500 to-accent-500 flex items-center justify-center shadow-2xl animate-glow-pulse relative">
+            <Users className="w-12 h-12 text-white" />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary-400 to-accent-400 opacity-30 blur-xl" />
           </div>
           
           {scanning && (
             <>
-              <div className="absolute inset-0 rounded-full border-2 border-primary-500/30 animate-[pulse-ring_2s_ease-out_infinite]" />
-              <div className="absolute inset-0 rounded-full border-2 border-primary-500/20 animate-[pulse-ring_2s_ease-out_infinite]" style={{ animationDelay: '0.6s' }} />
-              <div className="absolute inset-0 rounded-full border-2 border-primary-500/10 animate-[pulse-ring_2s_ease-out_infinite]" style={{ animationDelay: '1.2s' }} />
+              <div className="absolute inset-0 rounded-full border-2 border-primary-500/40 animate-[pulseRing_2.5s_ease-out_infinite]" />
+              <div className="absolute inset-0 rounded-full border-2 border-accent-500/25 animate-[pulseRing_2.5s_ease-out_infinite]" style={{ animationDelay: '0.8s' }} />
+              <div className="absolute inset-0 rounded-full border-2 border-primary-500/10 animate-[pulseRing_2.5s_ease_out_infinite]" style={{ animationDelay: '1.6s' }} />
+              <div className="absolute inset-0 rounded-full border-t-2 border-accent-400/30 animate-[rotate-scan_4s_linear_infinite]" />
             </>
           )}
         </div>
       </div>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full bg-black/80 backdrop-blur-sm text-white text-sm font-medium animate-in animate-in-delayed">
+      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 px-5 py-3 rounded-full bg-[#151522]/80 backdrop-blur-sm text-white text-sm font-medium animate-in animate-in-delayed shadow-lg border border-neutral-700/50">
         {scanning ? (
           <>
             <div className="flex items-center gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary-400 animate-pulse" />
-              <div className="w-1.5 h-1.5 rounded-full bg-primary-400 animate-pulse" style={{ animationDelay: '80ms' }} />
-              <div className="w-1.5 h-1.5 rounded-full bg-primary-400 animate-pulse" style={{ animationDelay: '160ms' }} />
+              <div className="w-2 h-2 rounded-full bg-primary-400 animate-pulse" />
+              <div className="w-2 h-2 rounded-full bg-accent-400 animate-pulse" style={{ animationDelay: '80ms' }} />
+              <div className="w-2 h-2 rounded-full bg-primary-400 animate-pulse" style={{ animationDelay: '160ms' }} />
             </div>
-            <span>Scanning...</span>
+            <span className="text-sm font-medium">Scanning nearby... {Math.round(scanProgress)}%</span>
+            <div className="w-48 h-1.5 bg-neutral-800 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-gradient-to-r from-primary-500 to-accent-500 rounded-full transition-all duration-300"
+                style={{ width: `${scanProgress}%` }}
+              />
+            </div>
           </>
         ) : foundCount > 0 ? (
           <>
-            <UserCheck className="w-4 h-4 text-green-400" />
-            <span>{foundCount} {foundCount === 1 ? 'person' : 'people'} found</span>
+            <div className="flex items-center gap-1.5">
+              <UserCheck className="w-4 h-4 text-green-400" />
+              <span className="text-sm font-semibold text-green-400">
+                {foundCount} {foundCount === 1 ? 'person' : 'people'} nearby
+              </span>
+            </div>
           </>
         ) : (
           <>
-            <Wifi className="w-4 h-4 text-gray-400" />
-            <span>Tap SCAN to discover</span>
+            <Wifi className="w-4 h-4 text-neutral-500" />
+            <span className="text-sm font-medium text-neutral-500">Tap SCAN to discover</span>
           </>
         )}
       </div>
 
-      <div className="absolute -top-1 -right-1 w-12 h-12 border-2 border-primary-500/15 rounded-tr-3xl" />
-      <div className="absolute -bottom-1 -left-1 w-12 h-12 border-2 border-primary-500/15 rounded-bl-3xl" />
+      <div className="absolute -top-2 -right-2 w-16 h-16 border-2 border-primary-500/20 rounded-tr-3xl opacity-50" />
+      <div className="absolute -bottom-2 -left-2 w-16 h-16 border-2 border-accent-500/20 rounded-bl-3xl opacity-50" />
+      <div className="absolute -top-2 -left-2 w-12 h-12 border-2 border-primary-500/15 rounded-tl-3xl opacity-30" />
+      <div className="absolute -bottom-2 -right-2 w-12 h-12 border-2 border-accent-500/15 rounded-br-3xl opacity-30" />
     </div>
   );
 };

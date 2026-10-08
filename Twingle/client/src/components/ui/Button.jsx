@@ -1,49 +1,52 @@
-import { forwardRef, memo } from 'react';
+import { Loader2 } from 'lucide-react';
 
-const Button = memo(forwardRef(({ 
-  children, 
-  variant = 'primary', 
-  size = 'md', 
-  className = '', 
-  disabled, 
-  loading, 
-  ...props 
-}, ref) => {
-  const baseClasses = 'inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]';
-  
-  const variants = {
-    primary: 'bg-gradient-to-r from-primary-600 to-primary-500 text-white hover:from-primary-700 hover:to-primary-600 focus:ring-primary-400 shadow-lg shadow-primary-500/25 dark:from-primary-500 dark:to-primary-400',
-    secondary: 'bg-white dark:bg-dark-800 text-dark-900 dark:text-dark-100 hover:bg-dark-50 dark:hover:bg-dark-700 focus:ring-dark-400 border border-dark-200 dark:border-dark-700 shadow-sm',
-    ghost: 'bg-transparent hover:bg-dark-100 dark:hover:bg-dark-800 focus:ring-dark-400',
-    danger: 'bg-gradient-to-r from-red-600 to-red-500 text-white hover:from-red-700 hover:to-red-600 focus:ring-red-400 shadow-lg shadow-red-500/25',
-    outline: 'border-2 border-dark-300 dark:border-dark-600 text-dark-700 dark:text-dark-200 hover:bg-dark-50 dark:hover:bg-dark-800 focus:ring-dark-400',
+export default function Button({
+  children,
+  variant = 'primary',
+  size = 'md',
+  loading = false,
+  disabled = false,
+  fullWidth = false,
+  className = '',
+  type = 'button',
+  onClick,
+  ...props
+}) {
+  const baseClasses = 'inline-flex items-center justify-center gap-2 font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0B12] disabled:opacity-50 disabled:cursor-not-allowed';
+
+  const variantClasses = {
+    primary: 'bg-gradient-to-r from-primary-600 to-primary-500 text-white hover:from-primary-500 hover:to-primary-400 focus-visible:ring-primary-500 shadow-lg shadow-primary-500/25',
+    outline: 'border-2 border-neutral-700 text-neutral-300 hover:bg-neutral-800/50 hover:border-neutral-600 focus-visible:ring-neutral-600',
+    ghost: 'text-neutral-400 hover:text-white hover:bg-neutral-800/50 focus-visible:ring-neutral-600',
+    danger: 'bg-gradient-to-r from-red-600 to-red-500 text-white hover:from-red-500 hover:to-red-400 focus-visible:ring-red-500 shadow-lg shadow-red-500/25',
+    success: 'bg-gradient-to-r from-green-600 to-green-500 text-white hover:from-green-500 hover:to-green-400 focus-visible:ring-green-500 shadow-lg shadow-green-500/25',
   };
 
-  const sizes = {
-    sm: 'px-3 py-1.5 text-xs',
-    md: 'px-5 py-3 text-sm',
-    lg: 'px-6 py-4 text-base',
-    xl: 'px-8 py-5 text-lg',
+  const sizeClasses = {
+    sm: 'px-4 py-2 text-xs rounded-lg',
+    md: 'px-6 py-3 text-sm rounded-xl',
+    lg: 'px-8 py-4 text-base rounded-xl',
+    xl: 'px-10 py-5 text-lg rounded-2xl',
   };
+
+  const widthClass = fullWidth ? 'w-full' : '';
 
   return (
     <button
-      ref={ref}
-      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`}
+      type={type}
+      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${widthClass} ${className}`}
       disabled={disabled || loading}
+      onClick={onClick}
       {...props}
     >
-      {loading && (
-        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
+      {loading ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          <span>Loading...</span>
+        </>
+      ) : (
+        children
       )}
-      {children}
     </button>
   );
-}));
-
-Button.displayName = 'Button';
-
-export default Button;
+}

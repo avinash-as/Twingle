@@ -5,21 +5,28 @@ import { useAuth } from './AuthContext';
 const SocketContext = createContext(null);
 
 export function SocketProvider({ children }) {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    if (!isAuthenticated || !user) return;
+    if (!isAuthenticated) {
+      if (socketRef.current) {
+        socketRef.current.close();
+        socketRef.current = null;
+        setSocket(null);
+        setIsConnected(false);
+      }
+      return;
+    }
 
-    // Use explicit configuration for Vite proxy
-    // In development: connects to ws://localhost:5173/socket.io (proxied to backend)
-    // In production: connects to same origin
-    const newSocket = io('', {
+    const socketUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
+    const newSocket = io(socketUrl, {
       path: '/socket.io',
       auth: { token: localStorage.getItem('token') },
-      transports: ['polling', 'websocket'], // Try polling first for better proxy compatibility
+      transports: ['polling', 'websocket'],
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
@@ -27,11 +34,13 @@ export function SocketProvider({ children }) {
     });
 
     newSocket.on('connect', () => {
+      if (!isMountedRef.current) return;
       console.log('Socket connected:', newSocket.id);
       setIsConnected(true);
     });
 
     newSocket.on('disconnect', (reason) => {
+      if (!isMountedRef.current) return;
       console.log('Socket disconnected:', reason);
       setIsConnected(false);
     });
@@ -44,12 +53,13 @@ export function SocketProvider({ children }) {
     setSocket(newSocket);
 
     return () => {
+      isMountedRef.current = false;
       newSocket.close();
       socketRef.current = null;
       setSocket(null);
       setIsConnected(false);
     };
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated]);
 
   const emit = useCallback((event, data) => {
     if (socketRef.current?.connected) {

@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 export function useGeolocation() {
   const [location, setLocation] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const hasFetchedRef = useRef(false);
 
   const getCurrentLocation = useCallback(() => {
     return new Promise((resolve, reject) => {
@@ -13,6 +14,8 @@ export function useGeolocation() {
         reject(err);
         return;
       }
+
+      if (loading) return;
 
       setLoading(true);
       setError(null);
@@ -39,8 +42,8 @@ export function useGeolocation() {
           maximumAge: 300000,
         }
       );
-    });
-  }, []);
+    }); // Close the Promise callback
+  }, [loading]);
 
   const watchLocation = useCallback((onUpdate) => {
     if (!navigator.geolocation) return null;
@@ -67,8 +70,11 @@ export function useGeolocation() {
   }, []);
 
   useEffect(() => {
-    getCurrentLocation().catch(() => {});
-  }, [getCurrentLocation]);
+    if (!hasFetchedRef.current) {
+      hasFetchedRef.current = true;
+      getCurrentLocation().catch(() => {});
+    }
+  }, []);
 
   return { location, error, loading, getCurrentLocation, watchLocation };
 }
@@ -78,23 +84,22 @@ export function useLocationPermission() {
 
   const checkPermission = useCallback(async () => {
     if (!navigator.permissions) {
-      setPermission('prompt');
       return 'prompt';
     }
 
     try {
       const result = await navigator.permissions.query({ name: 'geolocation' });
-      setPermission(result.state);
       return result.state;
     } catch {
-      setPermission('prompt');
       return 'prompt';
     }
   }, []);
 
   useEffect(() => {
-    checkPermission();
-  }, [checkPermission]);
+    checkPermission().then((state) => {
+      setPermission(state);
+    });
+  }, []);
 
-  return { permission, checkPermission };
+  return { permission, checkPermission: () => permission };
 }

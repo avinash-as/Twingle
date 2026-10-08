@@ -1,45 +1,35 @@
 import { NavLink } from 'react-router-dom';
-import { Home, MessageSquare, User, ScanSearch } from 'lucide-react';
+import { Radar, MessageSquare, Users, User } from 'lucide-react';
 
-const BottomNav = () => {
+export default function BottomNav() {
   const navItems = [
-    { path: '/', icon: Home, activeIcon: ScanSearch, label: 'Scan' },
-    { path: '/chats', icon: MessageSquare, activeIcon: MessageSquare, label: 'Chats' },
-    { path: '/profile', icon: User, activeIcon: User, label: 'Me' },
+    { path: '/scan', icon: Radar, label: 'Scan' },
+    { path: '/chats', icon: MessageSquare, label: 'Chats' },
+    { path: '/connections', icon: Users, label: 'Connections' },
+    { path: '/profile', icon: User, label: 'Profile' },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-dark-900/95 backdrop-blur-sm border-t border-dark-200 dark:border-dark-700 safe-area-bottom">
-      <div className="flex justify-around py-2">
-        {navItems.map(({ path, icon: Icon, activeIcon: ActiveIcon, label }) => (
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0B0B12]/95 backdrop-blur-md border-t border-neutral-800/50 lg:hidden">
+      <div className="grid grid-cols-4">
+        {navItems.map((item) => (
           <NavLink
-            key={path}
-            to={path}
+            key={item.path}
+            to={item.path}
+            end={item.path !== '/chats'}
             className={({ isActive }) =>
-              `flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all duration-200 ${
+              `flex flex-col items-center justify-center gap-1 py-3 transition-colors ${
                 isActive
-                  ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
-                  : 'text-dark-500 dark:text-dark-400 hover:text-dark-700 dark:hover:text-dark-200 hover:bg-dark-100 dark:hover:bg-dark-800'
+                  ? 'text-primary-400'
+                  : 'text-neutral-500 hover:text-neutral-300'
               }`
             }
-            aria-label={label}
           >
-            {({ isActive }) => {
-              const CurrentIcon = isActive ? ActiveIcon : Icon;
-              return (
-                <>
-                  <span className={isActive ? 'text-primary-600 dark:text-primary-400' : 'text-dark-500'}>
-                    <CurrentIcon className="w-6 h-6" />
-                  </span>
-                  <span className="text-xs font-medium">{label}</span>
-                </>
-              );
-            }}
+            <item.icon className="w-6 h-6" />
+            <span className="text-xs font-medium">{item.label}</span>
           </NavLink>
         ))}
       </div>
     </nav>
   );
-};
-
-export default BottomNav;
+}

@@ -1,97 +1,85 @@
-import { Menu, X, Sun, Moon, LogOut, User } from 'lucide-react';
-import { useState, useCallback, useMemo } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { Menu, X, Bell, MessageSquare, User, LogOut, Moon, Sun, Settings } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import Avatar from '../ui/Avatar';
 import Button from '../ui/Button';
-import { useAuth } from '../../context/AuthContext';
 
-const Header = ({ title, showBack = false, onBack, actions }) => {
-  const { user, logout, updateUser } = useAuth();
-  const navigate = useNavigate();
-  const [showMenu, setShowMenu] = useState(false);
-  
-  const isDark = useMemo(() => document.documentElement.classList.contains('dark'), []);
+export default function Header({ onMenuClick }) {
+  const { user, logout, isAuthenticated } = useAuth();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
 
-  const handleLogout = useCallback(async () => {
-    await logout();
-    navigate('/login');
-    setShowMenu(false);
-  }, [logout, navigate]);
-
-  const handleDarkModeToggle = useCallback(() => {
-    document.documentElement.classList.toggle('dark');
-    localStorage.setItem('darkMode', document.documentElement.classList.contains('dark'));
+  useEffect(() => {
+    const saved = localStorage.getItem('darkMode');
+    if (saved !== null) {
+      setDarkMode(saved === 'true');
+    } else {
+      setDarkMode(window.matchMedia('(prefers-color-scheme: dark)').matches);
+    }
   }, []);
 
-  const handleCloseMenu = useCallback(() => setShowMenu(false), []);
-
-  const menuContent = useMemo(() => (
-    <>
-      <div className="px-4 py-3 border-b border-dark-200 dark:border-dark-700">
-        <div className="flex items-center gap-3">
-          <Avatar src={user?.avatar} name={user?.name} size="md" />
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-dark-900 dark:text-dark-100 truncate">{user?.name}</p>
-            <p className="text-xs text-dark-500 dark:text-dark-400 truncate">{user?.email}</p>
-          </div>
-        </div>
-      </div>
-      <NavLink
-        to="/profile"
-        onClick={handleCloseMenu}
-        className="flex items-center gap-3 px-4 py-3 text-dark-700 dark:text-dark-200 hover:bg-dark-100 dark:hover:bg-dark-700"
-      >
-        <User className="w-5 h-5" />
-        Profile
-      </NavLink>
-      <button
-        onClick={() => { handleCloseMenu(); handleDarkModeToggle(); }}
-        className="flex items-center gap-3 w-full px-4 py-3 text-dark-700 dark:text-dark-200 hover:bg-dark-100 dark:hover:bg-dark-700 text-left"
-      >
-        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-        {isDark ? 'Light Mode' : 'Dark Mode'}
-      </button>
-      <button
-        onClick={handleLogout}
-        className="flex items-center gap-3 w-full px-4 py-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 text-left"
-      >
-        <LogOut className="w-5 h-5" />
-        Logout
-      </button>
-    </>
-  ), [user, isDark, handleCloseMenu, handleDarkModeToggle, handleLogout]);
+  useEffect(() => {
+    localStorage.setItem('darkMode', darkMode);
+    if (darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [darkMode]);
 
   return (
-    <header className="sticky top-0 z-30 bg-white/80 dark:bg-dark-900/80 backdrop-blur-xl border-b border-dark-200 dark:border-dark-700">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
-          {showBack && (
-            <button
-              onClick={onBack}
-              className="p-2 rounded-xl hover:bg-dark-100 dark:hover:bg-dark-800 transition-colors"
-              aria-label="Back"
-            >
-              <X className="w-5 h-5 text-dark-600 dark:text-dark-400" />
-            </button>
-          )}
-          <h1 className="text-xl font-bold text-dark-900 dark:text-dark-100">{title}</h1>
-        </div>
+    <header className="fixed top-0 left-0 right-0 z-40 bg-[#0B0B12]/80 backdrop-blur-md border-b border-neutral-800/50">
+      <div className="max-w-2xl mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={onMenuClick} className="lg:hidden">
+              <Menu className="w-6 h-6" />
+            </Button>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
+                <User className="w-5 h-5 text-white" />
+              </div>
+              <span className="font-bold text-xl gradient-text hidden sm:block">Twingle</span>
+            </div>
+          </div>
 
-        <div className="flex items-center gap-2">
-          {actions}
-          <div className="relative">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="p-2 rounded-xl hover:bg-dark-100 dark:hover:bg-dark-800 transition-colors"
-              aria-label="Menu"
-            >
-              {showMenu ? <X className="w-5 h-5 text-dark-600" /> : <Menu className="w-5 h-5 text-dark-600" />}
-            </button>
-            {showMenu && (
+          <div className="flex items-center gap-2">
+            {isAuthenticated && (
               <>
-                <div className="fixed inset-0 z-40" onClick={handleCloseMenu} />
-                <div className="fixed top-14 right-4 z-50 w-56 bg-white dark:bg-dark-800 rounded-xl shadow-lg border border-dark-200 dark:border-dark-700 py-2 animate-in">
-                  {menuContent}
+                <Button variant="ghost" size="sm" onClick={() => setDarkMode(!darkMode)}>
+                  {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                </Button>
+
+                <div className="relative">
+                  <Button variant="ghost" size="sm" onClick={() => setShowProfileMenu(!showProfileMenu)} className="gap-2 px-3">
+                    <Avatar src={user?.avatar} name={user?.name} size="sm" status={user?.isOnline ? 'online' : 'offline'} />
+                    <span className="hidden sm:block font-medium">{user?.name}</span>
+                  </Button>
+
+                  {showProfileMenu && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setShowProfileMenu(false)} />
+                      <div className="absolute right-0 top-full mt-2 w-56 card z-20 animate-in">
+                        <div className="p-2 border-b border-neutral-800">
+                          <div className="flex items-center gap-3 px-2 py-2">
+                            <Avatar src={user?.avatar} name={user?.name} size="md" status={user?.isOnline ? 'online' : 'offline'} />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-white truncate">{user?.name}</p>
+                              <p className="text-xs text-neutral-500 truncate">{user?.email}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm" className="w-full mx-2 mb-2 justify-start gap-2" onClick={() => {}}>
+                          <Settings className="w-4 h-4" />
+                          Settings
+                        </Button>
+                        <Button variant="danger" size="sm" className="w-full mx-2 mb-2 justify-start gap-2" onClick={logout}>
+                          <LogOut className="w-4 h-4" />
+                          Logout
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </>
             )}
@@ -100,6 +88,4 @@ const Header = ({ title, showBack = false, onBack, actions }) => {
       </div>
     </header>
   );
-};
-
-export default Header;
+}

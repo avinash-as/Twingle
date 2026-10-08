@@ -1,122 +1,113 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import api from '../utils/api';
 import { useSocket } from '../context/SocketContext';
-import { useAuth } from '../context/AuthContext';
 
-export function useChat(otherUserId) {
-  const { user } = useAuth();
+export function useChat() {
   const { emit, on, off } = useSocket();
+  const [conversations, setConversations] = useState([]);
   const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [activeConversation, setActiveConversation] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [typingUsers, setTypingUsers] = useState(new Set());
-  const messagesEndRef = useRef(null);
 
-  const fetchMessages = useCallback(async () => {
-    if (!otherUserId) return;
+  const fetchConversations = useCallback(async () => {
     try {
-      setLoading(true);
-      const response = await api.get(`/messages/${otherUserId}`);
+      const response = await api.get('/messages/conversations');
+      setConversations(response.data);
+    } catch (error) {
+      console.error('Fetch conversations error:', error);
+    }
+  }, []);
+
+  const fetchMessages = useCallback(async (userId) => {
+    setLoading(true);
+    try {
+      const response = await api.get(`/messages/${userId}`);
       setMessages(response.data);
+      setActiveConversation(userId);
     } catch (error) {
       console.error('Fetch messages error:', error);
     } finally {
       setLoading(false);
     }
-  }, [otherUserId]);
-
-  const sendMessage = useCallback(
-    async (message) => {
-      if (!message.trim() || !otherUserId || sending) return;
-
-      setSending(true);
-      try {
-        emit('send_message', { receiverId: otherUserId, message });
-      } catch (error) {
-        console.error('Send message error:', error);
-      } finally {
-        setSending(false);
-      }
-    },
-    [otherUserId, sending, emit]
-  );
-
-  const handleTyping = useCallback(() => {
-    emit('typing', { receiverId: otherUserId });
-  }, [otherUserId, emit]);
-
-  const handleStopTyping = useCallback(() => {
-    emit('stop_typing', { receiverId: otherUserId });
-  }, [otherUserId, emit]);
-
-  const handleMarkAsRead = useCallback(() => {
-    emit('mark_as_read', { senderId: otherUserId });
-    api.put(`/messages/read/${otherUserId}`).catch(console.error);
-  }, [otherUserId, emit]);
+  }, []);
 
   useEffect(() => {
-    fetchMessages();
+    fetchConversations();
 
-    const handleReceiveMessage = (data) => {
+    const handleReceiveMessage = (message) => {
       setMessages((prev) => {
-        if (prev.some((m) => m._id === data.message._id)) return prev;
-        return [...prev, data.message];
+        if (prev.some((m) => m._id === message._id)) return prev;
+        return [...prev, message];
+      });
+
+      setConversations((prev) => {
+        const existing = prev.find((c) => c.user.id === message.sender._id || c.user.id === message.receiver._id);
+        if (existing) {
+          return prev.map((c) =>
+            c.user.id === existing.user.id
+              ? { ...c, lastMessage: message, unreadCount: c.unreadCount + 1 }
+              : c
+          );
+        }
+        return prev;
       });
     };
 
-    const handleUserTyping = (data) => {
-      if (data.userId === otherUserId) {
-        setTypingUsers((prev) => new Set([...prev, data.userId]));
-      }
-    };
-
-    const handleUserStopTyping = (data) => {
-      if (data.userId === otherUserId) {
-        setTypingUsers((prev) => {
-          const next = new Set(prev);
-          next.delete(data.userId);
-          return next;
-        });
-      }
-    };
-
     const handleMessagesRead = (data) => {
-      if (data.readerId === otherUserId) {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.sender === otherUserId && m.receiver === user?._id ? { ...m, read: true } : m
-          )
-        );
-      }
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.sender === data.userId && m.receiver === activeConversation ? { ...m, isRead: true } : m
+        )
+      );
     };
 
     on('receive_message', handleReceiveMessage);
-    on('user_typing', handleUserTyping);
-    on('user_stop_typing', handleUserStopTyping);
     on('messages_read', handleMessagesRead);
 
     return () => {
       off('receive_message', handleReceiveMessage);
-      off('user_typing', handleUserTyping);
-      off('user_stop_typing', handleUserStopTyping);
       off('messages_read', handleMessagesRead);
     };
-  }, [otherUserId, user, fetchMessages, on, off]);
+  }, [on, off, fetchConversations, activeConversation]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  const sendMessage = useCallback(async (receiverId, content) => {
+    setSending(true);
+    try {
+      const response = await api.post('/messages', { receiverId, content });
+      return response.data;
+    } finally {
+      setSending(false);
+    }
+  }, []);
+
+  const markAsRead = useCallback(async (userId) => {
+    try {
+      await api.put(`/messages/read/${userId}`);
+      setMessages((prev) =>
+        prev.map((m) => (m.sender === userId ? { ...m, isRead: true } : m))
+      );
+    } catch (error) {
+      console.error('Mark as read error:', error);
+    }
+  }, []);
+
+  const clearActiveConversation = useCallback(() => {
+    setActiveConversation(null);
+    setMessages([]);
+  }, []);
 
   return {
+    conversations,
     messages,
+    activeConversation,
     loading,
     sending,
-    typingUsers,
+    fetchConversations,
+    fetchMessages,
     sendMessage,
-    handleTyping,
-    handleStopTyping,
-    handleMarkAsRead,
-    messagesEndRef,
-    refetch: fetchMessages,
+    markAsRead,
+    setActiveConversation,
+    clearActiveConversation,
   };
 }

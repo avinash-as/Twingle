@@ -37,20 +37,44 @@ export const sendConnectionRequest = async (req, res) => {
       status: 'pending',
     });
 
-    req.io.to(receiver.socketId).emit('connection_request', {
+    const sender = await User.findById(senderId).select('name avatar bio');
+
+    const io = req.app.get('io');
+    io.to(receiver.socketId).emit('connection_request', {
       connectionId: connection._id,
       sender: {
-        id: req.user._id,
-        name: req.user.name,
-        avatar: req.user.avatar,
-        bio: req.user.bio,
+        id: sender._id,
+        name: sender.name,
+        avatar: sender.avatar,
+        bio: sender.bio,
       },
     });
 
-    res.status(201).json({
-      message: 'Connection request sent',
-      connection,
-    });
+    res.status(201).json({ connectionId: connection._id, message: 'Connection request sent' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getPendingRequests = async (req, res) => {
+  try {
+    const connections = await Connection.find({
+      receiver: req.user._id,
+      status: 'pending',
+    }).populate('sender', 'name avatar bio');
+
+    const requests = connections.map((conn) => ({
+      connectionId: conn._id,
+      sender: {
+        id: conn.sender._id,
+        name: conn.sender.name,
+        avatar: conn.sender.avatar,
+        bio: conn.sender.bio,
+      },
+      createdAt: conn.createdAt,
+    }));
+
+    res.json(requests);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -76,17 +100,20 @@ export const acceptConnection = async (req, res) => {
     connection.status = 'accepted';
     await connection.save();
 
-    req.io.to(connection.sender.toString()).emit('connection_accepted', {
+    const receiver = await User.findById(req.user._id).select('name avatar bio');
+
+    const io = req.app.get('io');
+    io.to(connection.sender.toString()).emit('connection_accepted', {
       connectionId: connection._id,
       receiver: {
-        id: req.user._id,
-        name: req.user.name,
-        avatar: req.user.avatar,
-        bio: req.user.bio,
+        id: receiver._id,
+        name: receiver.name,
+        avatar: receiver.avatar,
+        bio: receiver.bio,
       },
     });
 
-    res.json({ message: 'Connection accepted', connection });
+    res.json({ message: 'Connection accepted' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -112,24 +139,12 @@ export const rejectConnection = async (req, res) => {
     connection.status = 'rejected';
     await connection.save();
 
-    req.io.to(connection.sender.toString()).emit('connection_rejected', {
+    const io = req.app.get('io');
+    io.to(connection.sender.toString()).emit('connection_rejected', {
       connectionId: connection._id,
     });
 
-    res.json({ message: 'Connection rejected', connection });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-export const getPendingConnections = async (req, res) => {
-  try {
-    const pending = await Connection.find({
-      receiver: req.user._id,
-      status: 'pending',
-    }).populate('sender', 'name avatar bio');
-
-    res.json(pending);
+    res.json({ message: 'Connection rejected' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

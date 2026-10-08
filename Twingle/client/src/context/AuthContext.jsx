@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../utils/api';
 
 const AuthContext = createContext(null);
@@ -59,14 +59,17 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const updateUser = (userData) => {
-    setUser((prev) => (prev ? { ...prev, ...userData } : null));
-    if (userData) {
-      localStorage.setItem('user', JSON.stringify({ ...user, ...userData }));
-    }
-  };
+  const updateUser = useCallback((userData) => {
+    setUser((prev) => {
+      const updated = prev ? { ...prev, ...userData } : null;
+      if (userData && updated) {
+        localStorage.setItem('user', JSON.stringify(updated));
+      }
+      return updated;
+    });
+  }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     loading,
     login,
@@ -74,7 +77,7 @@ export function AuthProvider({ children }) {
     logout,
     updateUser,
     isAuthenticated: !!user,
-  };
+  }), [user, loading]);
 
   return (
     <AuthContext.Provider value={value}>
