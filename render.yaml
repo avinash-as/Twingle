@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: twingle-backend
+    env: node
+    buildCommand: npm ci --prefix Twingle/server
+    startCommand: npm start --prefix Twingle/server
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: CLIENT_URL
+        sync: false
+    autoDeploy: true
+    healthCheckPath: /api/health
