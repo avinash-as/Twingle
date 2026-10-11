@@ -22,7 +22,8 @@ export function SocketProvider({ children }) {
       return;
     }
 
-    const newSocket = io('', {
+    const socketUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
+    const newSocket = io(socketUrl, {
       path: '/socket.io',
       auth: { token: localStorage.getItem('token') },
       transports: ['polling', 'websocket'],

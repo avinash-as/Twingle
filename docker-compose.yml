@@ -15,7 +15,7 @@ services:
   server:
     build:
       context: .
-      dockerfile: server/Dockerfile
+      dockerfile: Dockerfile
     container_name: twingle-server
     restart: unless-stopped
     ports:
@@ -37,7 +37,7 @@ services:
     container_name: twingle-client
     restart: unless-stopped
     ports:
-      - "5173:5173"
+      - "5173:80"
     environment:
       - VITE_API_URL=${CLIENT_URL}
     depends_on:
