@@ -2,8 +2,8 @@ services:
   - type: web
     name: twingle-backend
     env: node
-    buildCommand: npm ci --prefix Twingle/server
-    startCommand: npm start --prefix Twingle/server
+    buildCommand: npm ci --prefix server
+    startCommand: npm start --prefix server
     envVars:
       - key: NODE_ENV
         value: production
