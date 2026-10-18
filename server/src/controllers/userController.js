@@ -1,180 +1,279 @@
 import User from '../models/User.js';
 import Connection from '../models/Connection.js';
-
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371e3;
-  const φ1 = (lat1 * Math.PI) / 180;
-  const φ2 = (lat2 * Math.PI) / 180;
-  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
-  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return Math.round(R * c);
-};
+import LocationHistory from '../models/LocationHistory.js';
+import { AppError, ERROR_CODES, asyncHandler } from '../utils/errors.js';
 
 const formatDistance = (meters) => {
   if (meters < 1000) {
-    return `${meters} m`;
+    return `${Math.round(meters)} m`;
   }
   return `${(meters / 1000).toFixed(1)} km`;
 };
 
-export const updateLocation = async (req, res) => {
-  try {
-    const { latitude, longitude } = req.body;
+export const updateLocation = asyncHandler(async (req, res) => {
+  const { latitude, longitude } = req.body;
 
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      {
-        location: { latitude, longitude },
-        lastSeen: new Date(),
+  // Use the new model method that syncs both formats
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
+  }
+
+  await user.updateLocation(latitude, longitude);
+
+  res.json({
+    message: 'Location updated',
+    location: user.location,
+  });
+});
+
+export const batchLocation = asyncHandler(async (req, res) => {
+  const { locations } = req.body;
+  const userId = req.user._id;
+
+  if (!locations || !Array.isArray(locations) || locations.length === 0) {
+    throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Locations array is required', 400);
+  }
+
+  if (locations.length > 100) {
+    throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Maximum 100 locations per batch', 400);
+  }
+
+  // Validate all locations
+  for (const loc of locations) {
+    if (loc.latitude == null || loc.longitude == null ||
+        loc.latitude < -90 || loc.latitude > 90 ||
+        loc.longitude < -180 || loc.longitude > 180) {
+      throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Invalid location coordinates', 400);
+    }
+  }
+
+  // Create location history records
+  const historyRecords = locations.map(loc => ({
+    user: userId,
+    latitude: loc.latitude,
+    longitude: loc.longitude,
+    accuracy: loc.accuracy || null,
+    altitude: loc.altitude || null,
+    speed: loc.speed || null,
+    heading: loc.heading || null,
+    timestamp: loc.timestamp ? new Date(loc.timestamp) : new Date(),
+  }));
+
+  await LocationHistory.insertMany(historyRecords);
+
+  // Update current location to the most recent one
+  const latest = locations[locations.length - 1];
+  const user = await User.findById(userId);
+  if (user) {
+    await user.updateLocation(latest.latitude, latest.longitude);
+  }
+
+  res.json({
+    message: 'Batch location updated',
+    count: locations.length,
+    latestLocation: {
+      latitude: latest.latitude,
+      longitude: latest.longitude,
+    },
+  });
+});
+
+export const getNearbyUsers = asyncHandler(async (req, res) => {
+  const { latitude, longitude, maxDistance = 5000, page = 1, limit = 20 } = req.query;
+  const { gender, ageMin, ageMax, interests, genderPreference } = req.query;
+
+  const userLat = parseFloat(latitude);
+  const userLon = parseFloat(longitude);
+  const maxDist = parseInt(maxDistance);
+  const pageNum = parseInt(page);
+  const limitNum = parseInt(limit);
+  const skip = (pageNum - 1) * limitNum;
+
+  // Validate coordinates
+  if (isNaN(userLat) || isNaN(userLon) || userLat < -90 || userLat > 90 || userLon < -180 || userLon > 180) {
+    throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Invalid coordinates', 400);
+  }
+
+  // Build discovery filter query
+  const discoveryFilter = {
+    _id: { $ne: req.user._id },
+    isOnline: true,
+    isDiscoverable: true,
+    locationGeo: {
+      $near: {
+        $geometry: {
+          type: 'Point',
+          coordinates: [userLon, userLat],
+        },
+        $maxDistance: maxDist,
+        $minDistance: 0,
       },
-      { new: true }
-    );
+    },
+  };
 
-    res.json({
-      message: 'Location updated',
-      location: user.location,
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  // Gender filter
+  if (gender) {
+    discoveryFilter.gender = gender;
   }
-};
 
-export const getNearbyUsers = async (req, res) => {
-  try {
-    const { latitude, longitude, maxDistance = 5000 } = req.query;
+  // Age range filter
+  if (ageMin || ageMax) {
+    discoveryFilter.age = {};
+    if (ageMin) discoveryFilter.age.$gte = parseInt(ageMin);
+    if (ageMax) discoveryFilter.age.$lte = parseInt(ageMax);
+  }
 
-    if (!latitude || !longitude) {
-      return res.status(400).json({ message: 'Latitude and longitude are required' });
+  // Interests filter (users with at least one matching interest)
+  if (interests) {
+    const interestsArray = Array.isArray(interests) ? interests : [interests];
+    discoveryFilter.interests = { $in: interestsArray };
+  }
+
+  // Get current user's preferences if no explicit filters provided
+  const currentUser = await User.findById(req.user._id);
+  if (!currentUser) {
+    throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
+  }
+
+  // Apply gender preference if no explicit gender filter
+  if (!gender && currentUser.genderPreference && currentUser.genderPreference !== 'any') {
+    discoveryFilter.gender = currentUser.genderPreference;
+  }
+
+  // Apply age preference if no explicit age filter
+  if (!ageMin && !ageMax && currentUser.agePreferenceMin && currentUser.agePreferenceMax) {
+    discoveryFilter.age = {
+      $gte: currentUser.agePreferenceMin,
+      $lte: currentUser.agePreferenceMax,
+    };
+  }
+
+  // Use MongoDB $near with 2dsphere index - much more efficient!
+  // Note: GeoJSON coordinates are [longitude, latitude]
+  const users = await User.find(discoveryFilter)
+    .select('name avatar bio location locationGeo isOnline isDiscoverable lastSeen gender age interests')
+    .skip(skip)
+    .limit(limitNum)
+    .lean(); // Use lean() for better performance
+
+  // Get total count for pagination (separate query for efficiency)
+  const total = await User.countDocuments(discoveryFilter);
+
+  // Format response with calculated distances
+  const nearbyUsers = users.map((user) => {
+    // Calculate distance from $near metadata or compute
+    // Since we're using $near, results are already sorted by distance
+    // We can compute distance for display
+    const coords = user.locationGeo?.coordinates || [user.location?.longitude, user.location?.latitude];
+    let distance = 0;
+    
+    if (coords && coords.length === 2) {
+      // Use Haversine for display distance
+      const R = 6371e3;
+      const φ1 = (userLat * Math.PI) / 180;
+      const φ2 = (coords[1] * Math.PI) / 180;
+      const Δφ = ((coords[1] - userLat) * Math.PI) / 180;
+      const Δλ = ((coords[0] - userLon) * Math.PI) / 180;
+
+      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+        Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      distance = Math.round(R * c);
     }
 
-    const userLat = parseFloat(latitude);
-    const userLon = parseFloat(longitude);
-    const maxDist = parseInt(maxDistance);
+    return {
+      id: user._id,
+      name: user.name,
+      avatar: user.avatar,
+      bio: user.bio,
+      distance,
+      distanceFormatted: formatDistance(distance),
+      isOnline: user.isOnline,
+      lastSeen: user.lastSeen,
+    };
+  });
 
-    const currentUser = await User.findById(req.user._id);
+  res.json({
+    users: nearbyUsers,
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      total,
+      pages: Math.ceil(total / limitNum),
+    },
+  });
+});
 
-    const users = await User.find({
-      _id: { $ne: req.user._id },
-      isOnline: true,
-      isDiscoverable: true,
-      'location.latitude': { $ne: null },
-      'location.longitude': { $ne: null },
-    }).select('name avatar bio location isOnline isDiscoverable lastSeen');
-
-    const nearbyUsers = users
-      .map((user) => {
-        const distance = calculateDistance(
-          userLat,
-          userLon,
-          user.location.latitude,
-          user.location.longitude
-        );
-
-        if (distance <= maxDist) {
-          return {
-            id: user._id,
-            name: user.name,
-            avatar: user.avatar,
-            bio: user.bio,
-            distance,
-            distanceFormatted: formatDistance(distance),
-            isOnline: user.isOnline,
-            lastSeen: user.lastSeen,
-          };
-        }
-        return null;
-      })
-      .filter(Boolean)
-      .sort((a, b) => a.distance - b.distance);
-
-    res.json(nearbyUsers);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+export const getUserProfile = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.params.id).select('-password');
+  if (!user) {
+    throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
   }
-};
 
-export const getUserProfile = async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id).select('-password');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+  const connection = await Connection.findOne({
+    $or: [
+      { sender: req.user._id, receiver: req.params.id },
+      { sender: req.params.id, receiver: req.user._id },
+    ],
+  });
 
-    const connection = await Connection.findOne({
-      $or: [
-        { sender: req.user._id, receiver: req.params.id },
-        { sender: req.params.id, receiver: req.user._id },
-      ],
-    });
+  res.json({
+    ...user.getPublicProfile(),
+    connectionStatus: connection ? connection.status : null,
+    isSender: connection ? connection.sender.toString() === req.user._id.toString() : false,
+  });
+});
 
-    res.json({
-      ...user.getPublicProfile(),
-      connectionStatus: connection ? connection.status : null,
-      isSender: connection ? connection.sender.toString() === req.user._id.toString() : false,
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+export const updateProfile = asyncHandler(async (req, res) => {
+  const { name, avatar, bio, isDiscoverable } = req.body;
+
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { name, avatar, bio, isDiscoverable },
+    { new: true, runValidators: true }
+  );
+
+  if (!user) {
+    throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
   }
-};
 
-export const updateProfile = async (req, res) => {
-  try {
-    const { name, avatar, bio, isDiscoverable } = req.body;
+  res.json(user.getPublicProfile());
+});
 
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      { name, avatar, bio, isDiscoverable },
-      { new: true, runValidators: true }
-    );
+export const setDiscoverable = asyncHandler(async (req, res) => {
+  const { isDiscoverable } = req.body;
 
-    res.json(user.getPublicProfile());
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { isDiscoverable },
+    { new: true }
+  );
+
+  if (!user) {
+    throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
   }
-};
 
-export const setDiscoverable = async (req, res) => {
-  try {
-    const { isDiscoverable } = req.body;
+  res.json({ isDiscoverable: user.isDiscoverable });
+});
 
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      { isDiscoverable },
-      { new: true }
-    );
+export const getConnectedUsers = asyncHandler(async (req, res) => {
+  const connections = await Connection.find({
+    $or: [{ sender: req.user._id }, { receiver: req.user._id }],
+    status: 'accepted',
+  }).populate('sender receiver', 'name avatar bio isOnline lastSeen');
 
-    res.json({ isDiscoverable: user.isDiscoverable });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+  const connectedUsers = connections.map((conn) => {
+    const otherUser = conn.sender._id.toString() === req.user._id.toString() ? conn.receiver : conn.sender;
+    return {
+      id: otherUser._id,
+      name: otherUser.name,
+      avatar: otherUser.avatar,
+      bio: otherUser.bio,
+      isOnline: otherUser.isOnline,
+      lastSeen: otherUser.lastSeen,
+    };
+  });
 
-export const getConnectedUsers = async (req, res) => {
-  try {
-    const connections = await Connection.find({
-      $or: [{ sender: req.user._id }, { receiver: req.user._id }],
-      status: 'accepted',
-    }).populate('sender receiver', 'name avatar bio isOnline lastSeen');
-
-    const connectedUsers = connections.map((conn) => {
-      const otherUser = conn.sender._id.toString() === req.user._id.toString() ? conn.receiver : conn.sender;
-      return {
-        id: otherUser._id,
-        name: otherUser.name,
-        avatar: otherUser.avatar,
-        bio: otherUser.bio,
-        isOnline: otherUser.isOnline,
-        lastSeen: otherUser.lastSeen,
-      };
-    });
-
-    res.json(connectedUsers);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+  res.json(connectedUsers);
+});

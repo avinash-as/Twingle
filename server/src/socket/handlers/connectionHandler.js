@@ -1,5 +1,7 @@
 import User from '../../models/User.js';
 import Connection from '../../models/Connection.js';
+import { ERROR_CODES } from '../../utils/errors.js';
+import { sendPushToUser } from '../../controllers/pushController.js';
 
 export const handleUserOnline = async (io, socket, userId) => {
   try {
@@ -56,35 +58,42 @@ export const handleDisconnect = async (io, socket) => {
 
 export const handleUpdateLocation = async (io, socket, userId, data) => {
   try {
-    await User.findByIdAndUpdate(userId, {
-      location: { latitude: data.latitude, longitude: data.longitude },
-      lastSeen: new Date(),
-    });
+    // Validation already done in socket index
+    const { latitude, longitude } = data;
+    
+    const user = await User.findById(userId);
+    if (user) {
+      await user.updateLocation(latitude, longitude);
+    }
   } catch (error) {
     console.error('Error updating location:', error);
+    socket.emit('location_error', { message: 'Failed to update location' });
   }
 };
 
 export const handleSetDiscoverable = async (io, socket, userId, isDiscoverable) => {
   try {
+    // Validation already done in socket index
     await User.findByIdAndUpdate(userId, { isDiscoverable });
   } catch (error) {
     console.error('Error setting discoverable:', error);
+    socket.emit('discoverable_error', { message: 'Failed to update discoverability' });
   }
 };
 
 export const handleSendConnectionRequest = async (io, socket, userId, data) => {
   try {
+    // Validation already done in socket index
     const { receiverId } = data;
 
     if (userId.toString() === receiverId) {
-      socket.emit('connection_error', { message: 'Cannot connect to yourself' });
+      socket.emit('connection_error', { code: ERROR_CODES.CANNOT_CONNECT_SELF, message: 'Cannot connect to yourself' });
       return;
     }
 
     const receiver = await User.findById(receiverId);
     if (!receiver) {
-      socket.emit('connection_error', { message: 'User not found' });
+      socket.emit('connection_error', { code: ERROR_CODES.USER_NOT_FOUND, message: 'User not found' });
       return;
     }
 
@@ -97,13 +106,14 @@ export const handleSendConnectionRequest = async (io, socket, userId, data) => {
 
     if (existingConnection) {
       if (existingConnection.status === 'pending') {
-        socket.emit('connection_error', { message: 'Connection request already pending' });
+        socket.emit('connection_error', { code: ERROR_CODES.CONNECTION_ALREADY_EXISTS, message: 'Connection request already pending' });
         return;
       }
       if (existingConnection.status === 'accepted') {
-        socket.emit('connection_error', { message: 'Already connected' });
+        socket.emit('connection_error', { code: ERROR_CODES.ALREADY_CONNECTED, message: 'Already connected' });
         return;
       }
+      // If rejected, allow new request
     }
 
     const connection = await Connection.create({
@@ -127,27 +137,28 @@ export const handleSendConnectionRequest = async (io, socket, userId, data) => {
     socket.emit('connection_request_sent', { connectionId: connection._id });
   } catch (error) {
     console.error('Error sending connection request:', error);
-    socket.emit('connection_error', { message: error.message });
+    socket.emit('connection_error', { code: ERROR_CODES.INTERNAL_ERROR, message: 'Failed to send connection request' });
   }
 };
 
 export const handleAcceptConnection = async (io, socket, userId, data) => {
   try {
+    // Validation already done in socket index
     const { connectionId } = data;
 
     const connection = await Connection.findById(connectionId);
     if (!connection) {
-      socket.emit('connection_error', { message: 'Connection request not found' });
+      socket.emit('connection_error', { code: ERROR_CODES.CONNECTION_NOT_FOUND, message: 'Connection request not found' });
       return;
     }
 
     if (connection.receiver.toString() !== userId.toString()) {
-      socket.emit('connection_error', { message: 'Not authorized' });
+      socket.emit('connection_error', { code: ERROR_CODES.NOT_AUTHORIZED, message: 'Not authorized' });
       return;
     }
 
     if (connection.status !== 'pending') {
-      socket.emit('connection_error', { message: 'Connection already processed' });
+      socket.emit('connection_error', { code: ERROR_CODES.CONNECTION_ALREADY_PROCESSED, message: 'Connection already processed' });
       return;
     }
 
@@ -166,30 +177,42 @@ export const handleAcceptConnection = async (io, socket, userId, data) => {
       },
     });
 
+    // Send push notification to sender that their request was accepted
+    await sendPushToUser(connection.sender.toString(), {
+      title: 'Connection Accepted',
+      body: `${receiver.name} accepted your connection request`,
+      data: {
+        type: 'connection_accepted',
+        connectionId: connection._id.toString(),
+        receiverId: userId,
+      },
+    });
+
     socket.emit('connection_accepted', { connectionId: connection._id });
   } catch (error) {
     console.error('Error accepting connection:', error);
-    socket.emit('connection_error', { message: error.message });
+    socket.emit('connection_error', { code: ERROR_CODES.INTERNAL_ERROR, message: 'Failed to accept connection' });
   }
 };
 
 export const handleRejectConnection = async (io, socket, userId, data) => {
   try {
+    // Validation already done in socket index
     const { connectionId } = data;
 
     const connection = await Connection.findById(connectionId);
     if (!connection) {
-      socket.emit('connection_error', { message: 'Connection request not found' });
+      socket.emit('connection_error', { code: ERROR_CODES.CONNECTION_NOT_FOUND, message: 'Connection request not found' });
       return;
     }
 
     if (connection.receiver.toString() !== userId.toString()) {
-      socket.emit('connection_error', { message: 'Not authorized' });
+      socket.emit('connection_error', { code: ERROR_CODES.NOT_AUTHORIZED, message: 'Not authorized' });
       return;
     }
 
     if (connection.status !== 'pending') {
-      socket.emit('connection_error', { message: 'Connection already processed' });
+      socket.emit('connection_error', { code: ERROR_CODES.CONNECTION_ALREADY_PROCESSED, message: 'Connection already processed' });
       return;
     }
 
@@ -203,6 +226,6 @@ export const handleRejectConnection = async (io, socket, userId, data) => {
     socket.emit('connection_rejected', { connectionId: connection._id });
   } catch (error) {
     console.error('Error rejecting connection:', error);
-    socket.emit('connection_error', { message: error.message });
+    socket.emit('connection_error', { code: ERROR_CODES.INTERNAL_ERROR, message: 'Failed to reject connection' });
   }
 };

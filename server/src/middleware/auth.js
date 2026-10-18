@@ -1,6 +1,6 @@
-import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import { config } from '../config/env.js';
+import { AppError, ERROR_CODES } from '../utils/errors.js';
+import { verifyAccessToken } from '../utils/tokens.js';
 
 export const protect = async (req, res, next) => {
   let token;
@@ -8,16 +8,33 @@ export const protect = async (req, res, next) => {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, config.jwtSecret);
-      req.user = await User.findById(decoded.id).select('-password');
+      const decoded = verifyAccessToken(token);
+      req.user = await User.findById(decoded.userId).select('-password');
+      
+      if (!req.user) {
+        throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 401);
+      }
+      
       next();
     } catch (error) {
-      return res.status(401).json({ message: 'Not authorized, token failed' });
+      if (error instanceof AppError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          error: { code: error.code, message: error.message },
+        });
+      }
+      return res.status(401).json({
+        success: false,
+        error: { code: ERROR_CODES.TOKEN_INVALID, message: 'Not authorized, token failed' },
+      });
     }
   }
 
   if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token' });
+    return res.status(401).json({
+      success: false,
+      error: { code: ERROR_CODES.UNAUTHORIZED, message: 'Not authorized, no token' },
+    });
   }
 };
 
@@ -27,8 +44,8 @@ export const optionalAuth = async (req, res, next) => {
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, config.jwtSecret);
-      req.user = await User.findById(decoded.id).select('-password');
+      const decoded = verifyAccessToken(token);
+      req.user = await User.findById(decoded.userId).select('-password');
     } catch (error) {
       req.user = null;
     }

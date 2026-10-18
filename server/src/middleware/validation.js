@@ -1,87 +1,73 @@
-export const validateRegister = (req, res, next) => {
-  const { name, email, password } = req.body;
-  const errors = {};
+import { ZodError } from 'zod';
+import { AppError } from '../utils/errors.js';
 
-  if (!name || name.trim().length === 0) {
-    errors.name = 'Name is required';
-  } else if (name.length > 50) {
-    errors.name = 'Name cannot exceed 50 characters';
+/**
+ * Generic validation middleware factory
+ * @param {Object} schema - Zod schema with optional body, query, params properties
+ * @returns Express middleware
+ */
+export const validate = (schema) => (req, res, next) => {
+  try {
+    const dataToValidate = {};
+    
+    if (schema.body) {
+      dataToValidate.body = req.body;
+    }
+    if (schema.query) {
+      dataToValidate.query = req.query;
+    }
+    if (schema.params) {
+      dataToValidate.params = req.params;
+    }
+
+    const validated = schema.parse(dataToValidate);
+    
+    // Replace request data with validated/transformed data
+    if (schema.body) req.body = validated.body;
+    if (schema.query) req.query = validated.query;
+    if (schema.params) req.params = validated.params;
+    
+    next();
+  } catch (error) {
+    if (error instanceof ZodError) {
+      const messages = error.errors.map(err => {
+        const path = err.path.join('.');
+        return `${path}: ${err.message}`;
+      });
+      return next(new AppError('VALIDATION_ERROR', messages.join('; '), 400));
+    }
+    next(error);
   }
-
-  if (!email || email.trim().length === 0) {
-    errors.email = 'Email is required';
-  } else if (!/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
-    errors.email = 'Please provide a valid email';
-  }
-
-  if (!password || password.length === 0) {
-    errors.password = 'Password is required';
-  } else if (password.length < 6) {
-    errors.password = 'Password must be at least 6 characters';
-  }
-
-  if (Object.keys(errors).length > 0) {
-    return res.status(400).json({ errors });
-  }
-
-  next();
 };
 
-export const validateLogin = (req, res, next) => {
-  const { email, password } = req.body;
-  const errors = {};
-
-  if (!email || email.trim().length === 0) {
-    errors.email = 'Email is required';
+/**
+ * Validate socket event data
+ * @param {z.ZodSchema} schema - Zod schema for the event data
+ * @returns Function that validates and returns { success: boolean, data?, error? }
+ */
+export const validateSocketEvent = (schema) => (data) => {
+  try {
+    const validated = schema.parse(data);
+    return { success: true, data: validated };
+  } catch (error) {
+    if (error instanceof ZodError) {
+      const messages = error.errors.map(err => {
+        const path = err.path.join('.');
+        return `${path}: ${err.message}`;
+      });
+      return { success: false, error: messages.join('; ') };
+    }
+    return { success: false, error: 'Validation failed' };
   }
-
-  if (!password || password.length === 0) {
-    errors.password = 'Password is required';
-  }
-
-  if (Object.keys(errors).length > 0) {
-    return res.status(400).json({ errors });
-  }
-
-  next();
 };
 
-export const validateLocation = (req, res, next) => {
-  const { latitude, longitude } = req.body;
-  const errors = {};
-
-  if (latitude === undefined || latitude === null) {
-    errors.latitude = 'Latitude is required';
-  } else if (typeof latitude !== 'number' || latitude < -90 || latitude > 90) {
-    errors.latitude = 'Latitude must be a number between -90 and 90';
-  }
-
-  if (longitude === undefined || longitude === null) {
-    errors.longitude = 'Longitude is required';
-  } else if (typeof longitude !== 'number' || longitude < -180 || longitude > 180) {
-    errors.longitude = 'Longitude must be a number between -180 and 180';
-  }
-
-  if (Object.keys(errors).length > 0) {
-    return res.status(400).json({ errors });
-  }
-
-  next();
+/**
+ * Sanitize output - remove sensitive fields from response
+ */
+export const sanitizeUser = (user) => {
+  if (!user) return null;
+  const { password, socketId, __v, ...safeUser } = user.toObject ? user.toObject() : user;
+  return safeUser;
 };
 
-export const validateMessage = (req, res, next) => {
-  const { message } = req.body;
-  const errors = {};
-
-  if (!message || message.trim().length === 0) {
-    errors.message = 'Message is required';
-  } else if (message.length > 2000) {
-    errors.message = 'Message cannot exceed 2000 characters';
-  }
-
-  if (Object.keys(errors).length > 0) {
-    return res.status(400).json({ errors });
-  }
-
-  next();
-};
+export const sanitizeUsers = (users) => users.map(sanitizeUser);

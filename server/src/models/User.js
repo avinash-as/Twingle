@@ -25,14 +25,46 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  photos: {
+    type: [String],
+    default: [],
+    validate: {
+      validator: (arr) => arr.length <= 6,
+      message: 'Cannot have more than 6 photos',
+    },
+  },
   bio: {
     type: String,
     maxlength: [200, 'Bio cannot exceed 200 characters'],
     default: '',
   },
+  // Verification badge
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  verificationBadge: {
+    type: String,
+    enum: ['none', 'email', 'phone', 'social', 'identity'],
+    default: 'none',
+  },
+  // Legacy lat/lng fields (kept for backward compatibility)
   location: {
     latitude: { type: Number, default: null },
     longitude: { type: Number, default: null },
+  },
+  // New GeoJSON Point for 2dsphere index
+  locationGeo: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point',
+    },
+    coordinates: {
+      type: [Number], // [longitude, latitude] - GeoJSON order!
+      default: undefined,
+      index: '2dsphere',
+    },
   },
   isOnline: {
     type: Boolean,
@@ -50,8 +82,80 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  // Discovery preferences
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'other', 'prefer_not_to_say'],
+    default: 'prefer_not_to_say',
+  },
+  age: {
+    type: Number,
+    min: 18,
+    max: 120,
+    default: null,
+  },
+  interests: {
+    type: [String],
+    default: [],
+    validate: {
+      validator: (arr) => arr.length <= 10,
+      message: 'Cannot have more than 10 interests',
+    },
+  },
+  genderPreference: {
+    type: String,
+    enum: ['male', 'female', 'other', 'any', 'prefer_not_to_say'],
+    default: 'any',
+  },
+  agePreferenceMin: {
+    type: Number,
+    min: 18,
+    max: 120,
+    default: 18,
+  },
+  agePreferenceMax: {
+    type: Number,
+    min: 18,
+    max: 120,
+    default: 120,
+  },
 }, {
   timestamps: true,
+});
+
+// 2dsphere index for geospatial queries
+userSchema.index({ locationGeo: '2dsphere' });
+
+// Compound index for common queries
+userSchema.index({ isOnline: 1, isDiscoverable: 1, 'locationGeo.coordinates': '2dsphere' });
+
+// Sync legacy location to GeoJSON on save
+userSchema.pre('save', function (next) {
+  // Sync location -> locationGeo
+  if (this.isModified('location.latitude') || this.isModified('location.longitude')) {
+    const { latitude, longitude } = this.location;
+    if (latitude != null && longitude != null) {
+      this.locationGeo = {
+        type: 'Point',
+        coordinates: [longitude, latitude], // GeoJSON: [lng, lat]
+      };
+    } else {
+      this.locationGeo = undefined;
+    }
+  }
+  
+  // Sync locationGeo -> location (for backward compatibility)
+  if (this.isModified('locationGeo.coordinates')) {
+    const coords = this.locationGeo?.coordinates;
+    if (coords && coords.length === 2) {
+      this.location = {
+        latitude: coords[1],
+        longitude: coords[0],
+      };
+    }
+  }
+
+  next();
 });
 
 userSchema.pre('save', async function (next) {
@@ -72,6 +176,19 @@ userSchema.methods.getPublicProfile = function () {
   delete user.password;
   delete user.socketId;
   return user;
+};
+
+/**
+ * Update user location with both legacy and GeoJSON formats
+ */
+userSchema.methods.updateLocation = function (latitude, longitude) {
+  this.location = { latitude, longitude };
+  this.locationGeo = {
+    type: 'Point',
+    coordinates: [longitude, latitude],
+  };
+  this.lastSeen = new Date();
+  return this.save();
 };
 
 export default mongoose.model('User', userSchema);

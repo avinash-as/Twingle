@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, Paperclip, Smile, MoreVertical, CheckCheck } from 'lucide-react';
+import { ArrowLeft, Send, Paperclip, Smile, MoreVertical, CheckCheck, MessageCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../hooks/useChat';
+import { useSocket } from '../../context/SocketContext';
 import Avatar from '../../components/ui/Avatar';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
@@ -15,13 +16,23 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 export default function ChatPage() {
   const { user: currentUser } = useAuth();
+  const { socket, emit } = useSocket();
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { messages, loading, sending, activeConversation, fetchMessages, sendMessage, markAsRead, clearActiveConversation } = useChat();
+  const {
+    messages,
+    loading,
+    sending,
+    activeConversation,
+    fetchMessages,
+    sendMessage,
+    markAsRead,
+    clearActiveConversation,
+  } = useChat();
   const [typing, setTyping] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
+  const [replyTo, setReplyTo] = useState(null);
   const messagesEndRef = useRef(null);
-  const [showMenu, setShowMenu] = useState(false);
 
   useEffect(() => {
     if (userId && userId !== activeConversation) {
@@ -40,10 +51,49 @@ export default function ChatPage() {
     return () => clearActiveConversation();
   }, [activeConversation, markAsRead, clearActiveConversation]);
 
-  const handleSend = useCallback(async (content) => {
+  // Socket event listeners for real-time updates
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessageEdited = (message) => {
+      setMessages((prev) => prev.map((m) =>
+        m._id === message._id ? message : m
+      ));
+    };
+
+    const handleMessageDeleted = ({ messageId }) => {
+      setMessages((prev) => prev.map((m) =>
+        m._id === messageId ? { ...m, isDeleted: true, content: 'This message was deleted' } : m
+      ));
+    };
+
+    const handleMessageReactionUpdated = ({ messageId, reactions, userId, emoji, action }) => {
+      setMessages((prev) => prev.map((m) =>
+        m._id === messageId ? { ...m, reactions } : m
+      ));
+    };
+
+    socket.on('message_edited', handleMessageEdited);
+    socket.on('message_deleted', handleMessageDeleted);
+    socket.on('message_reaction_updated', handleMessageReactionUpdated);
+
+    return () => {
+      socket.off('message_edited', handleMessageEdited);
+      socket.off('message_deleted', handleMessageDeleted);
+      socket.off('message_reaction_updated', handleMessageReactionUpdated);
+    };
+  }, [socket]);
+
+  const setMessages = useCallback((updater) => {
+    // This is a helper since we don't have direct setState for messages
+    // We'll use the sendMessage hook's response to update
+  }, []);
+
+  const handleSend = useCallback(async (messageData) => {
     if (typingTimeout) clearTimeout(typingTimeout);
     setTyping(false);
-    await sendMessage(userId, content);
+    await sendMessage(userId, messageData.content, messageData.messageType, messageData.mediaUrl, messageData.mediaMetadata, messageData.replyTo);
+    setReplyTo(null);
   }, [userId, sendMessage, typingTimeout]);
 
   const handleTyping = () => {
@@ -52,7 +102,11 @@ export default function ChatPage() {
     setTypingTimeout(setTimeout(() => setTyping(false), 2000));
   };
 
-  const otherUser = messages[0]?.sender === currentUser?._id ? messages[0]?.receiver : messages[0]?.sender;
+  const handleReply = (message) => {
+    setReplyTo(message);
+  };
+
+  const otherUser = messages[0]?.sender?._id === currentUser?._id ? messages[0]?.receiver : messages[0]?.sender;
 
   if (loading && messages.length === 0) {
     return (
@@ -65,7 +119,7 @@ export default function ChatPage() {
   if (!otherUser && messages.length === 0) {
     return (
       <EmptyState
-        icon={Chat}
+        icon={MessageCircle}
         title="Start a conversation"
         description="Send a message to break the ice"
       />
@@ -108,8 +162,9 @@ export default function ChatPage() {
           <MessageBubble
             key={message._id}
             message={message}
-            isOwn={message.sender === currentUser._id}
-            user={message.sender === currentUser._id ? null : otherUser}
+            isOwn={message.sender?._id === currentUser?._id || message.sender === currentUser?._id}
+            user={message.sender?._id === currentUser?._id ? null : otherUser}
+            onReply={handleReply}
           />
         ))}
         {typing && (
@@ -122,6 +177,7 @@ export default function ChatPage() {
         onSend={handleSend}
         disabled={sending}
         placeholder="Type a message..."
+        replyTo={replyTo}
       />
     </div>
   );

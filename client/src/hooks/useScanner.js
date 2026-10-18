@@ -18,7 +18,7 @@ export function useScanner() {
 
   const SCAN_DURATION = 30000; // 30 seconds
 
-  const startScan = useCallback(async (location) => {
+  const startScan = useCallback(async (location, filters = {}) => {
     if (scanningRef.current || !location) return;
 
     scanningRef.current = true;
@@ -40,7 +40,7 @@ export function useScanner() {
     }, 100);
 
     try {
-      console.log('Starting scan with location:', location);
+      console.log('Starting scan with location:', location, 'filters:', filters);
       
       await api.post('/users/location', {
         latitude: location.latitude,
@@ -48,14 +48,21 @@ export function useScanner() {
       });
       console.log('Location updated successfully');
 
+      // Build query params for discovery filters
+      const params = {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        maxDistance: 5000,
+      };
+
+      // Add discovery filters if provided
+      if (filters.gender) params.gender = filters.gender;
+      if (filters.ageMin) params.ageMin = filters.ageMin;
+      if (filters.ageMax) params.ageMax = filters.ageMax;
+      if (filters.interests && filters.interests.length > 0) params.interests = filters.interests.join(',');
+
       // Do the actual search but don't show results until scan completes
-      const response = await api.get('/users/nearby', {
-        params: {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          maxDistance: 5000,
-        },
-      });
+      const response = await api.get('/users/nearby', { params });
       console.log('Nearby users response:', response.data);
 
       emit('update_location', {

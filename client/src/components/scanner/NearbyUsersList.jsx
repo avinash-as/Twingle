@@ -7,28 +7,56 @@ import { formatDistanceToNow } from 'date-fns';
 
 const UserCard = memo(({ user, onConnect, connectingId, loading }) => {
   const handleConnect = useCallback(() => onConnect(user.id), [onConnect, user.id]);
-  
+
   const isConnecting = connectingId === user.id;
-  
+
   return (
     <div className="card-interactive p-4">
       <div className="flex items-start gap-4">
         <Avatar src={user.avatar} name={user.name} size="lg" status={user.isOnline ? 'online' : 'offline'} className="flex-shrink-0" />
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-2">
             <h4 className="font-semibold text-white truncate">{user.name}</h4>
+            {user.age && (
+              <Badge variant="secondary" size="sm" className="gap-1">
+                {user.age}
+              </Badge>
+            )}
+            {user.gender && (
+              <Badge variant="secondary" size="sm" className="gap-1">
+                {user.gender.charAt(0).toUpperCase() + user.gender.slice(1)}
+              </Badge>
+            )}
             {user.isOnline && (
               <Badge variant="success" size="sm" className="gap-1" dot pulse>
                 Available
               </Badge>
             )}
           </div>
-          
+
           {user.bio && (
             <p className="text-sm text-neutral-400 mb-2 truncate">{user.bio}</p>
           )}
-          
+
+          {user.interests && user.interests.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-2">
+              {user.interests.slice(0, 3).map((interest, idx) => (
+                <span
+                  key={interest}
+                  className="px-2 py-1 rounded text-xs bg-primary-500/20 text-primary-400 border border-primary-500/30"
+                >
+                  #{interest}
+                </span>
+              ))}
+              {user.interests.length > 3 && (
+                <span className="px-2 py-1 rounded text-xs bg-neutral-800 text-neutral-500">
+                  +{user.interests.length - 3}
+                </span>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-4 text-sm text-neutral-500">
             <span className="flex items-center gap-1.5">
               <MapPin className="w-4 h-4" />
@@ -67,7 +95,7 @@ const UserCard = memo(({ user, onConnect, connectingId, loading }) => {
               </>
             )}
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -107,7 +135,7 @@ EmptyState.displayName = 'EmptyState';
 
 const NearbyUsersList = ({ users, onConnect, connectingId, loading }) => {
   const handleConnect = useCallback((id) => onConnect(id), [onConnect]);
-  
+
   if (!users.length) {
     return <EmptyState />;
   }
