@@ -11,3 +11,5 @@ nginx.conf
 test-*.json
 .github/
 node_modules/
+
+# Keep client/ folder - needed for build!
