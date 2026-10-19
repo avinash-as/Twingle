@@ -2,12 +2,15 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy all source files first
-COPY . .
+# Copy package files
+COPY server/package*.json ./
 
-# Install dependencies using workspaces
-RUN npm ci --workspaces --omit=dev
+# Install production dependencies
+RUN npm ci --omit=dev
+
+# Copy server source
+COPY server/ .
 
 EXPOSE 5000
 
-CMD ["npm", "run", "start", "--workspace=server"]
+CMD ["node", "src/index.js"]

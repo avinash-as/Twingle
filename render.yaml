@@ -1,9 +1,8 @@
 services:
   - type: web
     name: twingle-backend
-    env: node
-    buildCommand: npm ci --prefix server
-    startCommand: npm start --prefix server
+    env: docker
+    dockerfilePath: ./server/Dockerfile
     envVars:
       - key: NODE_ENV
         value: production
