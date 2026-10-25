@@ -42,7 +42,7 @@ export const sendConnectionRequest = asyncHandler(async (req, res) => {
   const sender = await User.findById(senderId).select('name avatar bio');
 
   const io = req.app.get('io');
-  io.to(receiver.socketId).emit('connection_request', {
+  io.to(receiverId).emit('connection_request', {
     connectionId: connection._id,
     sender: {
       id: sender._id,

@@ -133,7 +133,7 @@ export const getMessages = asyncHandler(async (req, res) => {
   );
 
   const io = req.app.get('io');
-  io.to(req.user.socketId).emit('messages_read', { userId });
+  io.to(req.user._id.toString()).emit('messages_read', { userId });
 
   // Reverse to show oldest first
   const reversedMessages = messages.reverse();
@@ -221,7 +221,7 @@ export const markAsRead = asyncHandler(async (req, res) => {
   );
 
   const io = req.app.get('io');
-  io.to(req.user.socketId).emit('messages_read', { userId });
+  io.to(req.user._id.toString()).emit('messages_read', { userId });
 
   res.json({ message: 'Messages marked as read' });
 });

@@ -21,5 +21,7 @@ const connectionSchema = new mongoose.Schema({
 });
 
 connectionSchema.index({ sender: 1, receiver: 1 }, { unique: true });
+connectionSchema.index({ receiver: 1, status: 1, createdAt: -1 });
+connectionSchema.index({ sender: 1, status: 1, createdAt: -1 });
 
 export default mongoose.model('Connection', connectionSchema);

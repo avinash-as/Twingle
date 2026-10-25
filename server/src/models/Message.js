@@ -78,6 +78,7 @@ const messageSchema = new mongoose.Schema({
 
 // Indexes
 messageSchema.index({ sender: 1, receiver: 1, createdAt: -1 });
+messageSchema.index({ receiver: 1, isRead: 1, createdAt: -1 });
 messageSchema.index({ replyTo: 1 });
 
 // Compound index to prevent duplicate reactions from same user on same message

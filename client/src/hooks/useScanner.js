@@ -11,6 +11,7 @@ export function useScanner() {
   const [scanCount, setScanCount] = useState(0);
   const [scanError, setScanError] = useState(null);
   const [scanProgress, setScanProgress] = useState(0);
+  const [scanComplete, setScanComplete] = useState(false);
   const scanTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
   const scanningRef = useRef(false);
@@ -27,6 +28,7 @@ export function useScanner() {
     setScanCount(0);
     setScanError(null);
     setScanProgress(0);
+    setScanComplete(false);
 
     // Simulate progress over SCAN_DURATION
     const startTime = Date.now();
@@ -73,11 +75,16 @@ export function useScanner() {
       // Store results but wait for scan duration to complete
       const scanResults = response.data;
 
-      // Wait for scan duration to complete before showing results
+      // Show discovered users on the radar immediately while scanning
+      setNearbyUsers(scanResults);
+      setScanCount(scanResults.length);
+
+      // Wait for scan duration to complete before revealing the results list
       scanTimeoutRef.current = setTimeout(() => {
         setNearbyUsers(scanResults);
         setScanCount(scanResults.length);
         setScanProgress(100);
+        setScanComplete(true);
         scanningRef.current = false;
         setScanning(false);
         if (progressIntervalRef.current) {
@@ -97,6 +104,7 @@ export function useScanner() {
 
   const stopScan = useCallback(() => {
     setScanning(false);
+    setScanComplete(false);
     setScanProgress(0);
     if (scanTimeoutRef.current) {
       clearTimeout(scanTimeoutRef.current);
@@ -147,5 +155,6 @@ export function useScanner() {
     setNearbyUsers,
     scanError,
     scanProgress,
+    scanComplete,
   };
 }

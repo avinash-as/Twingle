@@ -24,7 +24,7 @@ export default function RegisterPage() {
       await register(name, email, password);
       navigate('/scan');
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed');
+      setError(err.response?.data?.error?.message || err.response?.data?.message || 'Registration failed');
     } finally {
       setLoading(false);
     }

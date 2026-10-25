@@ -16,7 +16,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 const ScanPage = () => {
   const { user, updateUser } = useAuth();
   const { location, error: locationError, loading: locationLoading, getCurrentLocation } = useGeolocation();
-  const { scanning, nearbyUsers, scanCount, startScan, stopScan, scanError, scanProgress } = useScanner();
+  const { scanning, nearbyUsers, scanCount, startScan, stopScan, scanError, scanProgress, scanComplete } = useScanner();
   const { pendingRequests, sendConnectionRequest } = useConnections();
   const { isTracking: bgTracking, startTracking: startBgTracking, isSupported: bgSupported } = useBackgroundLocation();
   const navigate = useNavigate();
@@ -27,11 +27,13 @@ const ScanPage = () => {
   const [showResults, setShowResults] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [showMapView, setShowMapView] = useState(false);
-  const [filters, setFilters] = useState({
-    gender: '',
-    ageMin: '',
-    ageMax: '',
-    interests: [],
+  const [filters, setFilters] = useState(() => {
+    try {
+      const cached = localStorage.getItem('twingle_scan_filters');
+      return cached ? JSON.parse(cached) : { gender: '', ageMin: '', ageMax: '', interests: [] };
+    } catch {
+      return { gender: '', ageMin: '', ageMax: '', interests: [] };
+    }
   });
 
   const availableInterests = ['Music', 'Sports', 'Travel', 'Food', 'Movies', 'Books', 'Gaming', 'Fitness', 'Art', 'Cooking'];
@@ -111,6 +113,19 @@ const ScanPage = () => {
       updateUser({ isDiscoverable: true });
     }
   }, []);
+
+  useEffect(() => {
+    if (!scanning && scanComplete && nearbyUsers.length > 0) {
+      setShowResults(true);
+    }
+  }, [scanning, scanComplete, nearbyUsers.length]);
+
+  // Persist filters
+  useEffect(() => {
+    try {
+      localStorage.setItem('twingle_scan_filters', JSON.stringify(filters));
+    } catch {}
+  }, [filters]);
 
   if (locationError) {
     return (

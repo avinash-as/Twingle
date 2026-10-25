@@ -124,7 +124,7 @@ export const handleSendConnectionRequest = async (io, socket, userId, data) => {
 
     const sender = await User.findById(userId).select('name avatar bio');
 
-    io.to(receiver.socketId).emit('connection_request', {
+    io.to(receiverId).emit('connection_request', {
       connectionId: connection._id,
       sender: {
         id: sender._id,

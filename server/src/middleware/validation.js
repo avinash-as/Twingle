@@ -8,30 +8,35 @@ import { AppError } from '../utils/errors.js';
  */
 export const validate = (schema) => (req, res, next) => {
   try {
+    const shape = (schema && typeof schema.shape === 'object')
+      ? schema.shape
+      : (schema && typeof schema._def?.shape === 'function' ? schema._def.shape() : {});
+
     const dataToValidate = {};
-    
-    if (schema.body) {
+
+    if (shape.body) {
       dataToValidate.body = req.body;
     }
-    if (schema.query) {
+    if (shape.query) {
       dataToValidate.query = req.query;
     }
-    if (schema.params) {
+    if (shape.params) {
       dataToValidate.params = req.params;
     }
 
     const validated = schema.parse(dataToValidate);
-    
+
     // Replace request data with validated/transformed data
-    if (schema.body) req.body = validated.body;
-    if (schema.query) req.query = validated.query;
-    if (schema.params) req.params = validated.params;
-    
+    if (shape.body) req.body = validated.body;
+    if (shape.query) req.query = validated.query;
+    if (shape.params) req.params = validated.params;
+
     next();
   } catch (error) {
     if (error instanceof ZodError) {
-      const messages = error.errors.map(err => {
-        const path = err.path.join('.');
+      const issues = error.issues || error.errors || [];
+      const messages = issues.map(err => {
+        const path = (err.path || []).join('.');
         return `${path}: ${err.message}`;
       });
       return next(new AppError('VALIDATION_ERROR', messages.join('; '), 400));
@@ -51,8 +56,9 @@ export const validateSocketEvent = (schema) => (data) => {
     return { success: true, data: validated };
   } catch (error) {
     if (error instanceof ZodError) {
-      const messages = error.errors.map(err => {
-        const path = err.path.join('.');
+      const issues = error.issues || error.errors || [];
+      const messages = issues.map(err => {
+        const path = (err.path || []).join('.');
         return `${path}: ${err.message}`;
       });
       return { success: false, error: messages.join('; ') };

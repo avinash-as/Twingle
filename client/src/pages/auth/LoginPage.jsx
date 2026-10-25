@@ -23,7 +23,7 @@ export default function LoginPage() {
       await login(email, password);
       navigate('/scan');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed');
+      setError(err.response?.data?.error?.message || err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
     }

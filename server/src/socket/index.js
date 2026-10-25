@@ -141,6 +141,9 @@ export const initializeSocket = (io) => {
     const userId = socket.userId;
     console.log(`User connected: ${socket.user.name} (${userId})`);
 
+    // Join a room keyed by userId so server can target this user across handlers
+    socket.join(userId);
+
     await connectionHandler.handleUserOnline(io, socket, userId);
 
     // Location & discoverability: 10/min

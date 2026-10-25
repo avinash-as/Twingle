@@ -128,6 +128,7 @@ userSchema.index({ locationGeo: '2dsphere' });
 
 // Compound index for common queries
 userSchema.index({ isOnline: 1, isDiscoverable: 1, 'locationGeo.coordinates': '2dsphere' });
+userSchema.index({ isOnline: 1, isDiscoverable: 1, lastSeen: -1 });
 
 // Sync legacy location to GeoJSON on save
 userSchema.pre('save', function (next) {
@@ -152,6 +153,21 @@ userSchema.pre('save', function (next) {
         latitude: coords[1],
         longitude: coords[0],
       };
+    }
+  }
+
+  // Ensure locationGeo is always valid for the 2dsphere index.
+  // Repair legacy/bad data (e.g. { type: 'Point' } without coordinates)
+  // so saves/updates do not fail with "Can't extract geo keys".
+  if (!this.locationGeo || !Array.isArray(this.locationGeo.coordinates) || this.locationGeo.coordinates.length !== 2) {
+    const { latitude, longitude } = this.location || {};
+    if (latitude != null && longitude != null) {
+      this.locationGeo = {
+        type: 'Point',
+        coordinates: [longitude, latitude],
+      };
+    } else {
+      this.locationGeo = undefined;
     }
   }
 

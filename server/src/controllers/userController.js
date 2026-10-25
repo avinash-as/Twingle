@@ -157,8 +157,15 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
     .limit(limitNum)
     .lean(); // Use lean() for better performance
 
-  // Get total count for pagination (separate query for efficiency)
-  const total = await User.countDocuments(discoveryFilter);
+  // Get total count for pagination.
+  // $near cannot be used with countDocuments (requires sorting), so use $geoWithin.
+  const countFilter = { ...discoveryFilter };
+  countFilter.locationGeo = {
+    $geoWithin: {
+      $centerSphere: [[userLon, userLat], maxDist / 6371000],
+    },
+  };
+  const total = await User.countDocuments(countFilter);
 
   // Format response with calculated distances
   const nearbyUsers = users.map((user) => {
@@ -171,13 +178,13 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
     if (coords && coords.length === 2) {
       // Use Haversine for display distance
       const R = 6371e3;
-      const φ1 = (userLat * Math.PI) / 180;
-      const φ2 = (coords[1] * Math.PI) / 180;
-      const Δφ = ((coords[1] - userLat) * Math.PI) / 180;
-      const Δλ = ((coords[0] - userLon) * Math.PI) / 180;
+      const phi1 = (userLat * Math.PI) / 180;
+      const phi2 = (coords[1] * Math.PI) / 180;
+      const deltaPhi = ((coords[1] - userLat) * Math.PI) / 180;
+      const deltaLambda = ((coords[0] - userLon) * Math.PI) / 180;
 
-      const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-        Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+      const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+        Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       distance = Math.round(R * c);
     }

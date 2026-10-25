@@ -12,6 +12,13 @@ services:
     environment:
       - MONGO_INITDB_DATABASE=twingle
 
+  redis:
+    image: redis:7-alpine
+    container_name: twingle-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
   server:
     build:
       context: .
@@ -27,8 +34,11 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRE=7d
       - CLIENT_URL=${CLIENT_URL}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       - mongodb
+      - redis
 
   client:
     build:

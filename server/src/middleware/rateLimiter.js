@@ -108,19 +108,21 @@ export const profileLimiter = createLimiter({
 // ============================================
 
 /** Per-socket event rate limiting */
-export const socketEventLimiter = (eventName, maxPerMinute = 30) => {
-  const userLimits = new Map(); // userId -> { count, resetTime }
+// Shared across all socket events so cleanup can run safely
+const userLimits = new Map(); // `${userId}:${eventName}` -> { count, resetTime }
 
+export const socketEventLimiter = (eventName, maxPerMinute = 30) => {
   return (socket, next) => {
     const userId = socket.userId;
+    const key = `${userId}:${eventName}`;
     const now = Date.now();
     const windowMs = 60 * 1000; // 1 minute
 
-    if (!userLimits.has(userId)) {
-      userLimits.set(userId, { count: 0, resetTime: now + windowMs });
+    if (!userLimits.has(key)) {
+      userLimits.set(key, { count: 0, resetTime: now + windowMs });
     }
 
-    const limit = userLimits.get(userId);
+    const limit = userLimits.get(key);
 
     if (now > limit.resetTime) {
       limit.count = 0;

@@ -1,7 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 
 export function useGeolocation() {
-  const [location, setLocation] = useState(null);
+  const [location, setLocation] = useState(() => {
+    try {
+      const cached = localStorage.getItem('twingle_last_location');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const hasFetchedRef = useRef(false);
@@ -27,6 +34,10 @@ export function useGeolocation() {
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy,
           };
+          // Cache last known location for offline/fallback use
+          try {
+            localStorage.setItem('twingle_last_location', JSON.stringify(coords));
+          } catch {}
           setLocation(coords);
           setLoading(false);
           resolve(coords);
@@ -55,6 +66,9 @@ export function useGeolocation() {
           longitude: position.coords.longitude,
           accuracy: position.coords.accuracy,
         };
+        try {
+          localStorage.setItem('twingle_last_location', JSON.stringify(coords));
+        } catch {}
         setLocation(coords);
         onUpdate?.(coords);
       },
