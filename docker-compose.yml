@@ -21,7 +21,7 @@ services:
 
   server:
     build:
-      context: .
+      context: ./server
       dockerfile: Dockerfile
     container_name: twingle-server
     restart: unless-stopped
@@ -42,8 +42,8 @@ services:
 
   client:
     build:
-      context: .
-      dockerfile: client/Dockerfile
+      context: ./client
+      dockerfile: Dockerfile
     container_name: twingle-client
     restart: unless-stopped
     ports:
