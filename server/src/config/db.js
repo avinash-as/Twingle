@@ -58,7 +58,7 @@ const buildConnectionOptions = () => ({
   // Other settings
   maxIdleTimeMS: POOL_SETTINGS.maxIdleTimeMS,
   // Auto-create indexes (disable in production for performance)
-  autoIndex: config.nodeEnv === 'development',
+  autoIndex: true,
   // Buffer commands when disconnected (default: true)
   bufferCommands: true,
   // bufferMaxEntries is deprecated in MongoDB driver 4.0+
@@ -101,6 +101,15 @@ const connectDB = async () => {
 
       const conn = await mongoose.connect(uri, options);
       
+      // Repair legacy invalid geo data so 2dsphere indexes can be created
+      try {
+        const users = conn.connection.db.collection('users');
+        await users.updateMany({ 'locationGeo.coordinates': { $exists: false } }, { $unset: { locationGeo: '' } });
+        await users.updateMany({ 'locationGeo.coordinates': { $size: 0 } }, { $unset: { locationGeo: '' } });
+      } catch (e) {
+        console.warn('MongoDB: geo data cleanup skipped:', e.message);
+      }
+
       isConnected = true;
       console.log(`MongoDB Connected: ${conn.connection.host}`);
       console.log(`MongoDB: Pool size ${conn.connections.length}/${POOL_SETTINGS.maxPoolSize}`);
