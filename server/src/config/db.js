@@ -119,6 +119,11 @@ const connectDB = async () => {
       isConnected = false;
       connectionPromise = null;
       console.error('MongoDB Connection Error:', error.message);
+      setTimeout(() => {
+        connectDB().catch((retryError) => {
+          console.error('MongoDB retry failed:', retryError.message);
+        });
+      }, 5000);
       throw error;
     }
   })();
@@ -227,6 +232,8 @@ const logPoolStats = () => {
 export const checkDBHealth = async () => {
   try {
     if (!isConnected || mongoose.connection.readyState !== 1) {
+      // Try to (re)establish the connection lazily.
+      connectDB().catch(() => {});
       return { healthy: false, reason: 'Not connected' };
     }
 
