@@ -69,6 +69,7 @@ const buildConnectionOptions = () => ({
 
 let isConnected = false;
 let connectionPromise = null;
+let lastMongoError = null;
 
 /**
  * Connect to MongoDB with proper configuration
@@ -118,6 +119,7 @@ const connectDB = async () => {
     } catch (error) {
       isConnected = false;
       connectionPromise = null;
+      lastMongoError = error.message;
       console.error('MongoDB Connection Error:', error.message);
       setTimeout(() => {
         connectDB().catch((retryError) => {
@@ -234,7 +236,7 @@ export const checkDBHealth = async () => {
     if (!isConnected || mongoose.connection.readyState !== 1) {
       // Try to (re)establish the connection lazily.
       connectDB().catch(() => {});
-      return { healthy: false, reason: 'Not connected' };
+      return { healthy: false, reason: lastMongoError || 'Not connected' };
     }
 
     // Ping the database
