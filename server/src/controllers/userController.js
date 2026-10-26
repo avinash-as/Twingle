@@ -137,16 +137,17 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
   }
 
   // Apply gender preference if no explicit gender filter
-  if (!gender && currentUser.genderPreference && currentUser.genderPreference !== 'any') {
+  if (!gender && currentUser.genderPreference && currentUser.genderPreference !== 'any' && currentUser.genderPreference !== 'prefer_not_to_say') {
     discoveryFilter.gender = currentUser.genderPreference;
   }
 
-  // Apply age preference if no explicit age filter
+  // Apply age preference if no explicit age filter.
+  // Include users without an age set so newly registered users are discoverable.
   if (!ageMin && !ageMax && currentUser.agePreferenceMin && currentUser.agePreferenceMax) {
-    discoveryFilter.age = {
-      $gte: currentUser.agePreferenceMin,
-      $lte: currentUser.agePreferenceMax,
-    };
+    discoveryFilter.$or = [
+      { age: { $gte: currentUser.agePreferenceMin, $lte: currentUser.agePreferenceMax } },
+      { age: null },
+    ];
   }
 
   // Use MongoDB $near with 2dsphere index - much more efficient!

@@ -203,6 +203,7 @@ userSchema.methods.updateLocation = function (latitude, longitude) {
     type: 'Point',
     coordinates: [longitude, latitude],
   };
+  this.isOnline = true;
   this.lastSeen = new Date();
   return this.save();
 };
