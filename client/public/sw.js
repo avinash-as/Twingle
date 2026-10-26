@@ -3,7 +3,7 @@
  * Handles background sync, push notifications, and offline caching
  */
 
-const CACHE_NAME = 'twingle-v1';
+const CACHE_NAME = 'twingle-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -38,6 +38,20 @@ self.addEventListener('activate', (event) => {
 // Fetch event - serve from cache, fall back to network
 self.addEventListener('fetch', (event) => {
   const isLocal = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+
+  // Never intercept non-GET or cross-origin requests (e.g. API calls).
+  // Letting the browser handle them avoids service-worker interference with
+  // CORS preflight and keeps auth requests reliable.
+  let requestUrl;
+  try {
+    requestUrl = new URL(event.request.url);
+  } catch (e) {
+    return;
+  }
+  if (event.request.method !== 'GET' || requestUrl.origin !== self.location.origin) {
+    return;
+  }
+
   if (isLocal) {
     event.respondWith(fetch(event.request));
     return;
@@ -49,7 +63,7 @@ self.addEventListener('fetch', (event) => {
         return response;
       }
       return fetch(event.request);
-    })
+    }).catch(() => fetch(event.request))
   );
 });
 

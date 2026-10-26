@@ -203,11 +203,11 @@ export const batchLocationSchema = z.object({
       z.object({
         latitude: z.number().min(-90).max(90),
         longitude: z.number().min(-180).max(180),
-        accuracy: z.number().min(0).optional(),
-        altitude: z.number().optional(),
-        speed: z.number().min(0).optional(),
-        heading: z.number().min(0).max(360).optional(),
-        timestamp: z.string().datetime().optional(),
+        accuracy: z.number().min(0).nullish(),
+        altitude: z.number().nullish(),
+        speed: z.number().min(0).nullish(),
+        heading: z.number().min(0).max(360).nullish(),
+        timestamp: z.union([z.string().datetime(), z.number()]).optional(),
       })
     ).min(1).max(100),
   }),

@@ -29,7 +29,7 @@ const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: config.clientUrl,
+    origin: config.allowedOrigins || [config.clientUrl],
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -52,7 +52,8 @@ app.use(requestLogger);
  * - Production: Strict policy, no inline scripts/eval
  */
 const isDev = config.nodeEnv === 'development';
-const clientOrigin = config.clientUrl;
+const allowedOrigins = config.allowedOrigins || [config.clientUrl];
+const clientOrigin = allowedOrigins[0];
 
 const cspDirectives = {
   defaultSrc: ["'self'"],
@@ -82,7 +83,7 @@ const cspDirectives = {
   // Connect: API, WebSocket, Vite HMR
   connectSrc: [
     "'self'",
-    clientOrigin,
+    ...allowedOrigins,
     ...(isDev ? ['ws:', 'wss:'] : []),
     // Allow WebSocket to same origin
     isDev ? 'ws://localhost:5173' : '',
@@ -118,7 +119,7 @@ app.use(helmet({
   // Additional security headers
   crossOriginEmbedderPolicy: false, // Required for COOP/COEP if needed
   crossOriginOpenerPolicy: { policy: 'same-origin' },
-  crossOriginResourcePolicy: { policy: 'same-site' },
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
   dnsPrefetchControl: { allow: false },
   frameguard: { action: 'deny' },
   hidePoweredBy: true,
@@ -133,7 +134,15 @@ app.use(helmet({
   xssFilter: true,
 }));
 
-app.use(cors({ origin: config.clientUrl, credentials: true }));
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (same-origin, curl, mobile apps)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser()); // Parse cookies for refresh token
