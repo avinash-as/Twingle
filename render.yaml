@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: twingle-backend
+    name: twingle
     env: docker
     dockerfilePath: ./server/Dockerfile
     envVars:

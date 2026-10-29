@@ -4,7 +4,7 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
+import 'dotenv/config';
 
 import connectDB, { checkDBHealth, disconnectDB, isDBConnected } from './config/db.js';
 import { config } from './config/env.js';
@@ -19,8 +19,6 @@ import userRoutes from './routes/userRoutes.js';
 import connectionRoutes from './routes/connectionRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import pushRoutes from './routes/pushRoutes.js';
-
-dotenv.config();
 
 connectDB();
 

@@ -2,7 +2,7 @@
 // (e.g. "http://localhost:5173,https://twingle.vercel.app").
 const envOrigins = (process.env.CLIENT_URL || '')
   .split(',')
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/+$/, ''))
   .filter(Boolean);
 
 // Always allow local dev and the production frontend, even if CLIENT_URL is
