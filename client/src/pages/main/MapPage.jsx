@@ -38,7 +38,7 @@ function RecenterMap({ center }) {
 
 export default function MapPage() {
   const { user } = useAuth();
-  const { location, getCurrentLocation, loading: locLoading } = useGeolocation();
+  const { location, getCurrentLocation, loading: locLoading, error: locError } = useGeolocation();
   const [privacy, setPrivacy] = useState(null);
   const [nearby, setNearby] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -156,6 +156,14 @@ export default function MapPage() {
         </div>
       )}
 
+      {locError && (
+        <div className="absolute top-20 left-4 right-4 z-[1000]">
+          <Card className="p-3 text-sm text-red-400">
+            Location error: {locError.message || 'Unable to get location'}. Enable location and tap refresh.
+          </Card>
+        </div>
+      )}
+
       {/* Controls */}
       <div className="absolute top-4 left-4 right-4 z-[1000] flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -178,8 +186,8 @@ export default function MapPage() {
       </div>
 
       {/* Map */}
-      <div className="flex-1">
-        <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
+      <div className="flex-1 relative" style={{ minHeight: '400px' }}>
+        <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%', minHeight: '400px' }}>
           <TileLayer
             attribution='&copy; OpenStreetMap contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
