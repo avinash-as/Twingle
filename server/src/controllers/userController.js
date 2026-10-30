@@ -80,7 +80,7 @@ export const batchLocation = asyncHandler(async (req, res) => {
 });
 
 export const getNearbyUsers = asyncHandler(async (req, res) => {
-  const { latitude, longitude, maxDistance = 5000, page = 1, limit = 20 } = req.query;
+  const { latitude, longitude, maxDistance = 25000, page = 1, limit = 20 } = req.query;
   const { gender, ageMin, ageMax, interests, genderPreference } = req.query;
 
   const userLat = parseFloat(latitude);
@@ -98,8 +98,11 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
   // Build discovery filter query
   const discoveryFilter = {
     _id: { $ne: req.user._id },
-    isOnline: true,
     isDiscoverable: true,
+    $or: [
+      { isOnline: true },
+      { lastSeen: { $gte: new Date(Date.now() - 10 * 60 * 1000) } },
+    ],
     locationGeo: {
       $near: {
         $geometry: {
