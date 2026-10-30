@@ -8,6 +8,7 @@ import Input from '../../components/ui/Input';
 import Card from '../../components/ui/Card';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { useBackgroundLocation } from '../../hooks/useBackgroundLocation';
+import api from '../../utils/api';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 
 export default function ProfilePage() {
@@ -28,6 +29,7 @@ export default function ProfilePage() {
   });
   const [saving, setSaving] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [locationPrivacy, setLocationPrivacy] = useState({ locationSharing: false, audience: 'friends', nearbyDiscovery: false, ghostMode: false });
 
   const availableInterests = ['Music', 'Sports', 'Travel', 'Food', 'Movies', 'Books', 'Gaming', 'Fitness', 'Art', 'Cooking'];
 
@@ -47,6 +49,17 @@ export default function ProfilePage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const fetchPrivacy = async () => {
+      try {
+        const res = await api.get('/users/location/privacy');
+        setLocationPrivacy(res.data);
+      } catch (e) {
+        console.error('privacy fetch failed', e);
+      }
+    };
+    if (user) fetchPrivacy();
+  }, [user]);
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -473,6 +486,70 @@ export default function ProfilePage() {
                   </Button>
                 </div>
               )}
+            </Card>
+
+            <Card className="p-6 space-y-4">
+              <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Location Privacy
+              </h3>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-white">Location Sharing</p>
+                  <p className="text-xs text-neutral-500">Share your approximate location on the map</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={locationPrivacy.locationSharing}
+                    onChange={async (e) => {
+                      const enabled = e.target.checked;
+                      await api.put('/users/location/sharing', { enabled, audience: enabled ? (locationPrivacy.audience || 'friends') : 'nobody' });
+                      setLocationPrivacy((p) => ({ ...p, locationSharing: enabled }));
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-neutral-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                </label>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-white">Nearby Discovery</p>
+                  <p className="text-xs text-neutral-500">Allow others to find you nearby</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={locationPrivacy.nearbyDiscovery}
+                    onChange={async (e) => {
+                      const enabled = e.target.checked;
+                      await api.put('/users/nearby-discovery', { enabled });
+                      setLocationPrivacy((p) => ({ ...p, nearbyDiscovery: enabled }));
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-neutral-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                </label>
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-white">Ghost Mode</p>
+                  <p className="text-xs text-neutral-500">Hide your location from everyone</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={locationPrivacy.ghostMode}
+                    onChange={async (e) => {
+                      const enabled = e.target.checked;
+                      await api.put('/users/ghost-mode', { enabled });
+                      setLocationPrivacy((p) => ({ ...p, ghostMode: enabled, locationSharing: enabled ? false : p.locationSharing, nearbyDiscovery: enabled ? false : p.nearbyDiscovery }));
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-neutral-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-500/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-500"></div>
+                </label>
+              </div>
             </Card>
 
             <Button variant="danger" onClick={handleLogout} fullWidth className="mt-4">
