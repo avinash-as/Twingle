@@ -30,6 +30,45 @@ export function AuthProvider({ children }) {
     fetchUser();
   }, [fetchUser]);
 
+  // Auto-save the user's location (if permission already granted) so they are
+  // discoverable by nearby Twingle users even before running a scan.
+  useEffect(() => {
+    if (!user) return;
+    if (!navigator.geolocation) return;
+
+    const saveLocation = async (coords) => {
+      try {
+        await api.post('/users/location', {
+          latitude: coords.latitude,
+          longitude: coords.longitude,
+        });
+      } catch (e) {
+        console.error('Auto location save failed', e);
+      }
+    };
+
+    const tryAutoLocation = async () => {
+      try {
+        if (navigator.permissions) {
+          const result = await navigator.permissions.query({ name: 'geolocation' });
+          if (result.state !== 'granted') return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            saveLocation({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
+          },
+          () => {},
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+        );
+      } catch {}
+    };
+
+    tryAutoLocation();
+  }, [user]);
+
   const login = async (email, password) => {
     const response = await api.post('/auth/login', { email, password });
     const { accessToken, user: userData } = response.data;

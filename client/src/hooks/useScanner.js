@@ -54,7 +54,7 @@ export function useScanner() {
       const params = {
         latitude: location.latitude,
         longitude: location.longitude,
-        maxDistance: 5000,
+        maxDistance: 10000,
       };
 
       // Add discovery filters if provided
