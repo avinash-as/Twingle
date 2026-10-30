@@ -1,11 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { Radar, MessageSquare, Users, User } from 'lucide-react';
+import { Radar, Map, MessageSquare, Users, User } from 'lucide-react';
 
 export default function BottomNav() {
   const navItems = [
-    { path: '/scan', icon: Radar, label: 'Scan' },
+    { path: '/scan', icon: Radar, label: 'Nearby' },
+    { path: '/map', icon: Map, label: 'Map' },
     { path: '/chats', icon: MessageSquare, label: 'Chats' },
-    { path: '/connections', icon: Users, label: 'Connections' },
     { path: '/profile', icon: User, label: 'Profile' },
   ];
 

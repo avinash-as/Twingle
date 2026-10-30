@@ -3,6 +3,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import Header from './components/common/Header';
 import BottomNav from './components/common/BottomNav';
 import ScanPage from './pages/main/ScanPage';
+import MapPage from './pages/main/MapPage';
 import ChatsPage from './pages/main/ChatsPage';
 import ChatPage from './pages/main/ChatPage';
 import ProfilePage from './pages/main/ProfilePage';
@@ -59,6 +60,7 @@ function App() {
       
       <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
         <Route path="/scan" element={<ScanPage />} />
+        <Route path="/map" element={<MapPage />} />
         <Route path="/chats" element={<ChatsPage />} />
         <Route path="/chat/:userId" element={<ChatPage />} />
         <Route path="/profile" element={<ProfilePage />} />

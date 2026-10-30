@@ -7,6 +7,11 @@ import {
   setDiscoverable,
   getConnectedUsers,
   batchLocation,
+  updateLocationSharing,
+  updateNearbyDiscovery,
+  updateGhostMode,
+  getLocationPrivacy,
+  getMapNearbyUsers,
 } from '../controllers/userController.js';
 import { protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validation.js';
@@ -31,5 +36,10 @@ router.get('/connected', getConnectedUsers);
 router.get('/profile/:id', validate(getUserProfileSchema), getUserProfile);
 router.put('/profile', profileLimiter, validate(updateProfileSchema), updateProfile);
 router.put('/discoverable', profileLimiter, validate(setDiscoverableSchema), setDiscoverable);
+router.get('/location/privacy', getLocationPrivacy);
+router.put('/location/sharing', profileLimiter, updateLocationSharing);
+router.put('/nearby-discovery', profileLimiter, updateNearbyDiscovery);
+router.put('/ghost-mode', profileLimiter, updateGhostMode);
+router.get('/map/nearby', scanLimiter, getMapNearbyUsers);
 
 export default router;

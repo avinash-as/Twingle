@@ -1,0 +1,3 @@
+WARNING: VAPID keys not configured. Push notifications will not work.
+Generate keys with: web-push generate-vapid-keys --json
+Then set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in .env

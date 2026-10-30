@@ -74,6 +74,33 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  // Location sharing preferences (off by default for privacy)
+  locationSharing: {
+    type: Boolean,
+    default: false,
+  },
+  locationSharingAudience: {
+    type: String,
+    enum: ['friends', 'discoverable', 'nobody'],
+    default: 'friends',
+  },
+  nearbyDiscovery: {
+    type: Boolean,
+    default: false,
+  },
+  ghostMode: {
+    type: Boolean,
+    default: false,
+  },
+  blockedUsers: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'User',
+    default: [],
+  },
+  lastLocationUpdate: {
+    type: Date,
+    default: null,
+  },
   lastSeen: {
     type: Date,
     default: Date.now,
@@ -205,6 +232,7 @@ userSchema.methods.updateLocation = function (latitude, longitude) {
   };
   this.isOnline = true;
   this.lastSeen = new Date();
+  this.lastLocationUpdate = new Date();
   return this.save();
 };
 

@@ -249,6 +249,134 @@ export const updateProfile = asyncHandler(async (req, res) => {
   res.json(user.getPublicProfile());
 });
 
+export const updateLocationSharing = asyncHandler(async (req, res) => {
+  const { enabled, audience } = req.body;
+  const user = await User.findById(req.user._id);
+  if (!user) throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
+
+  if (typeof enabled === 'boolean') user.locationSharing = enabled;
+  if (audience && ['friends', 'discoverable', 'nobody'].includes(audience)) {
+    user.locationSharingAudience = audience;
+  }
+  if (!user.locationSharing) {
+    user.locationSharingAudience = 'nobody';
+  }
+  await user.save();
+  res.json({ message: 'Location sharing updated', locationSharing: user.locationSharing, audience: user.locationSharingAudience });
+});
+
+export const updateNearbyDiscovery = asyncHandler(async (req, res) => {
+  const { enabled } = req.body;
+  const user = await User.findById(req.user._id);
+  if (!user) throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
+  if (typeof enabled === 'boolean') user.nearbyDiscovery = enabled;
+  await user.save();
+  res.json({ message: 'Nearby discovery updated', nearbyDiscovery: user.nearbyDiscovery });
+});
+
+export const updateGhostMode = asyncHandler(async (req, res) => {
+  const { enabled } = req.body;
+  const user = await User.findById(req.user._id);
+  if (!user) throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
+  if (typeof enabled === 'boolean') user.ghostMode = enabled;
+  if (user.ghostMode) {
+    user.locationSharing = false;
+    user.nearbyDiscovery = false;
+  }
+  await user.save();
+  res.json({ message: 'Ghost mode updated', ghostMode: user.ghostMode });
+});
+
+export const getLocationPrivacy = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select('locationSharing locationSharingAudience nearbyDiscovery ghostMode blockedUsers');
+  if (!user) throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
+  res.json({
+    locationSharing: user.locationSharing,
+    audience: user.locationSharingAudience,
+    nearbyDiscovery: user.nearbyDiscovery,
+    ghostMode: user.ghostMode,
+    blockedUsers: user.blockedUsers,
+  });
+});
+
+export const getMapNearbyUsers = asyncHandler(async (req, res) => {
+  const { latitude, longitude, radius = 5000 } = req.query;
+  const userLat = parseFloat(latitude);
+  const userLon = parseFloat(longitude);
+  const maxDist = parseInt(radius);
+
+  if (isNaN(userLat) || isNaN(userLon)) {
+    throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Invalid coordinates', 400);
+  }
+
+  const currentUser = await User.findById(req.user._id);
+  if (!currentUser) throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
+
+  const blockedSet = new Set((currentUser.blockedUsers || []).map((id) => id.toString()));
+
+  const candidates = await User.find({
+    _id: { $ne: req.user._id },
+    locationSharing: true,
+    ghostMode: false,
+    lastLocationUpdate: { $gte: new Date(Date.now() - 30 * 60 * 1000) },
+    locationGeo: {
+      $near: {
+        $geometry: { type: 'Point', coordinates: [userLon, userLat] },
+        $maxDistance: maxDist,
+      },
+    },
+  })
+    .select('name avatar bio location locationGeo locationSharingAudience lastLocationUpdate isOnline')
+    .lean();
+
+  // Filter by audience / friendship
+  const results = [];
+  for (const u of candidates) {
+    if (blockedSet.has(u._id.toString())) continue;
+    if (u.locationSharingAudience === 'nobody') continue;
+
+    if (u.locationSharingAudience === 'friends') {
+      const conn = await Connection.findOne({
+        $or: [
+          { sender: req.user._id, receiver: u._id, status: 'accepted' },
+          { sender: u._id, receiver: req.user._id, status: 'accepted' },
+        ],
+      });
+      if (!conn) continue;
+    }
+
+    const coords = u.locationGeo?.coordinates || [u.location?.longitude, u.location?.latitude];
+    if (!coords || coords.length !== 2) continue;
+
+    // Approximate coordinates for privacy (round to ~111m)
+    const approxLat = Math.round(coords[1] * 1000) / 1000;
+    const approxLon = Math.round(coords[0] * 1000) / 1000;
+
+    const R = 6371e3;
+    const phi1 = (userLat * Math.PI) / 180;
+    const phi2 = (coords[1] * Math.PI) / 180;
+    const dPhi = ((coords[1] - userLat) * Math.PI) / 180;
+    const dLambda = ((coords[0] - userLon) * Math.PI) / 180;
+    const a = Math.sin(dPhi / 2) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dLambda / 2) ** 2;
+    const distance = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+
+    results.push({
+      id: u._id,
+      name: u.name,
+      avatar: u.avatar,
+      bio: u.bio,
+      distance,
+      distanceFormatted: distance < 1000 ? `${distance} m` : `${(distance / 1000).toFixed(1)} km`,
+      isOnline: u.isOnline,
+      lastSeen: u.lastLocationUpdate,
+      latitude: approxLat,
+      longitude: approxLon,
+    });
+  }
+
+  res.json({ users: results, count: results.length });
+});
+
 export const setDiscoverable = asyncHandler(async (req, res) => {
   const { isDiscoverable } = req.body;
 
