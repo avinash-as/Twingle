@@ -66,6 +66,8 @@ export function useScanner() {
       // Do the actual search but don't show results until scan completes
       const response = await api.get('/users/nearby', { params });
       console.log('Nearby users response:', response.data);
+      console.log('Nearby users count:', (response.data?.users || []).length);
+      console.log('Scanned at:', location.latitude, location.longitude);
 
       emit('update_location', {
         latitude: location.latitude,
@@ -73,7 +75,7 @@ export function useScanner() {
       });
 
       // Store results but wait for scan duration to complete
-      const scanResults = response.data;
+      const scanResults = response.data?.users || [];
 
       // Show discovered users on the radar immediately while scanning
       setNearbyUsers(scanResults);
