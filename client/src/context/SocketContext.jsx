@@ -22,7 +22,7 @@ export function SocketProvider({ children }) {
       return;
     }
 
-    const socketUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || '';
+    const socketUrl = (import.meta.env.VITE_API_URL || '').trim().replace('/api', '').trim();
     const newSocket = io(socketUrl, {
       path: '/socket.io',
       auth: { token: localStorage.getItem('token') },
