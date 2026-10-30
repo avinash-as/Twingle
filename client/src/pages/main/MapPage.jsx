@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { MapPin, RefreshCw, Eye, EyeOff, Ghost, Users, Navigation } from 'lucide-react';
 import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
+import { useSocket } from '../../context/SocketContext';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import Avatar from '../../components/ui/Avatar';
 import Button from '../../components/ui/Button';
@@ -38,6 +39,7 @@ function RecenterMap({ center }) {
 
 export default function MapPage() {
   const { user } = useAuth();
+  const { emit, on, off } = useSocket();
   const { location, getCurrentLocation, loading: locLoading, error: locError } = useGeolocation();
   const [privacy, setPrivacy] = useState(null);
   const [nearby, setNearby] = useState([]);
@@ -88,6 +90,20 @@ export default function MapPage() {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [location, privacy?.locationSharing, fetchNearby]);
+
+  // Push current location to backend/socket when sharing is enabled
+  useEffect(() => {
+    if (!location || !privacy?.locationSharing) return;
+    api.post('/users/location', { latitude: location.latitude, longitude: location.longitude }).catch(() => {});
+    emit('update_location', { latitude: location.latitude, longitude: location.longitude });
+  }, [location, privacy?.locationSharing, emit]);
+
+  // Real-time refresh when another user's location changes
+  useEffect(() => {
+    const handler = () => fetchNearby();
+    on('user_location_updated', handler);
+    return () => off('user_location_updated', handler);
+  }, [on, off, fetchNearby]);
 
   const handleConsent = async (choice) => {
     try {

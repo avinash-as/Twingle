@@ -64,6 +64,11 @@ export const handleUpdateLocation = async (io, socket, userId, data) => {
     const user = await User.findById(userId);
     if (user) {
       await user.updateLocation(latitude, longitude);
+      // Notify clients that a user's location changed so maps can refresh.
+      // No coordinates are broadcast; clients re-fetch via the privacy-aware API.
+      if (user.locationSharing) {
+        io.emit('user_location_updated', { userId: user._id.toString() });
+      }
     }
   } catch (error) {
     console.error('Error updating location:', error);
