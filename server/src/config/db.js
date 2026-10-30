@@ -107,6 +107,10 @@ const connectDB = async () => {
         const users = conn.connection.db.collection('users');
         await users.updateMany({ 'locationGeo.coordinates': { $exists: false } }, { $unset: { locationGeo: '' } });
         await users.updateMany({ 'locationGeo.coordinates': { $size: 0 } }, { $unset: { locationGeo: '' } });
+        await users.updateMany(
+          { $expr: { $ne: [{ $size: { $ifNull: ['$locationGeo.coordinates', []] } }, 2] } },
+          { $unset: { locationGeo: '' } }
+        );
       } catch (e) {
         console.warn('MongoDB: geo data cleanup skipped:', e.message);
       }
