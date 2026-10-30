@@ -47,6 +47,7 @@ export default function MapPage() {
   const [error, setError] = useState(null);
   const [showConsent, setShowConsent] = useState(false);
   const [radius, setRadius] = useState(5000);
+  const [mapStyle, setMapStyle] = useState('satellite');
   const intervalRef = useRef(null);
 
   const fetchPrivacy = useCallback(async () => {
@@ -148,7 +149,7 @@ export default function MapPage() {
   const center = location ? [location.latitude, location.longitude] : [20.5937, 78.9629];
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0B0B12] relative">
+    <div className="flex-1 relative bg-[#0B0B12] overflow-hidden" style={{ minHeight: '100%' }}>
       {/* Consent modal */}
       {showConsent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -189,6 +190,9 @@ export default function MapPage() {
           <Button variant="outline" size="sm" onClick={fetchNearby} loading={loading}>
             <RefreshCw className="w-4 h-4" />
           </Button>
+          <Button variant="outline" size="sm" onClick={() => setMapStyle((s) => (s === 'satellite' ? 'street' : 'satellite'))}>
+            {mapStyle === 'satellite' ? 'Street' : 'Satellite'}
+          </Button>
         </div>
         <div className="flex items-center gap-2">
           <Button variant={privacy?.locationSharing ? 'primary' : 'outline'} size="sm" onClick={toggleSharing}>
@@ -202,12 +206,19 @@ export default function MapPage() {
       </div>
 
       {/* Map */}
-      <div className="flex-1 relative" style={{ minHeight: '400px' }}>
-        <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%', minHeight: '400px' }}>
-          <TileLayer
-            attribution='&copy; OpenStreetMap contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+      <div className="absolute inset-0">
+        <MapContainer center={center} zoom={13} style={{ height: '100%', width: '100%' }}>
+          {mapStyle === 'satellite' ? (
+            <TileLayer
+              attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            />
+          ) : (
+            <TileLayer
+              attribution='&copy; OpenStreetMap contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+          )}
           {location && (
             <Marker position={[location.latitude, location.longitude]} icon={createProfileIcon(user?.avatar, user?.name)}>
               <Popup>You are here</Popup>
