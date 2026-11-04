@@ -161,7 +161,16 @@ export const sendMessage = asyncHandler(async (req, res) => {
   });
 
   if (!connection) {
-    throw new AppError(ERROR_CODES.NOT_CONNECTED, 'Not connected to this user', 403);
+    // Allow a small number of "intro" messages before a connection is established.
+    const introCount = await Message.countDocuments({
+      sender: req.user._id,
+      receiver: receiverId,
+      isDeleted: false,
+    });
+
+    if (introCount >= 2) {
+      throw new AppError(ERROR_CODES.NOT_CONNECTED, 'Connect with this user to send more messages', 403);
+    }
   }
 
   // Validate replyTo if provided

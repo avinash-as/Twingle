@@ -10,7 +10,7 @@ export function useConnections() {
   const fetchPendingRequests = useCallback(async () => {
     try {
       const response = await api.get('/connections/pending');
-      setPendingRequests(response.data);
+      setPendingRequests(response.data?.requests || []);
     } catch (error) {
       console.error('Fetch pending requests error:', error);
     }
