@@ -5,7 +5,7 @@ import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import { formatDistanceToNow } from 'date-fns';
 
-const UserCard = memo(({ user, onConnect, connectingId, loading }) => {
+const UserCard = memo(({ user, onConnect, onMessage, connectingId, loading }) => {
   const handleConnect = useCallback(() => onConnect(user.id), [onConnect, user.id]);
 
   const isConnecting = connectingId === user.id;
@@ -100,7 +100,7 @@ const UserCard = memo(({ user, onConnect, connectingId, loading }) => {
             variant="ghost"
             size="sm"
             className="w-[110px] text-primary-400 hover:bg-primary-500/10"
-            onClick={() => onConnect(user.id)}
+            onClick={() => onMessage ? onMessage(user.id) : onConnect(user.id)}
             disabled={loading}
             fullWidth
           >
@@ -133,7 +133,7 @@ const EmptyState = memo(() => (
 
 EmptyState.displayName = 'EmptyState';
 
-const NearbyUsersList = ({ users, onConnect, connectingId, loading }) => {
+const NearbyUsersList = ({ users, onConnect, onMessage, connectingId, loading }) => {
   const handleConnect = useCallback((id) => onConnect(id), [onConnect]);
 
   if (!users.length) {
@@ -147,6 +147,7 @@ const NearbyUsersList = ({ users, onConnect, connectingId, loading }) => {
           key={user.id}
           user={user}
           onConnect={handleConnect}
+          onMessage={onMessage}
           connectingId={connectingId}
           loading={loading}
         />

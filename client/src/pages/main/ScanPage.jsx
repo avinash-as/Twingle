@@ -57,6 +57,10 @@ const ScanPage = () => {
     }
   }, [location, getCurrentLocation, startScan, filters, bgSupported, startBgTracking, scanning]);
 
+  const handleOpenChat = useCallback((userId) => {
+    navigate(`/chat/${userId}`);
+  }, [navigate]);
+
   const handleConnect = async (userId) => {
     setConnectingId(userId);
     try {
@@ -409,6 +413,7 @@ const ScanPage = () => {
               <NearbyUsersList
                 users={nearbyUsers}
                 onConnect={handleConnect}
+                onMessage={handleOpenChat}
                 connectingId={connectingId}
               />
             </div>
