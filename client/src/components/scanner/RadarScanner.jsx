@@ -13,6 +13,7 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0 }) =>
   const dprRef = useRef(1);
   const canvasSizeRef = useRef({ width: 0, height: 0, cx: 0, cy: 0, maxR: 0 });
   const colorsRef = useRef({});
+  const imagesRef = useRef({});
 
   const colors = useMemo(() => ({
     isDark: true,
@@ -88,6 +89,18 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0 }) =>
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    (nearbyUsers || []).forEach((user) => {
+      if (!user?.avatar || imagesRef.current[user.id]) return;
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = user.avatar;
+      img.onload = () => { imagesRef.current[user.id] = img; };
+      img.onerror = () => { imagesRef.current[user.id] = null; };
+      imagesRef.current[user.id] = 'loading';
+    });
+  }, [nearbyUsers]);
 
   const drawRadar = useCallback((timestamp) => {
     const ctx = ctxRef.current;
@@ -278,25 +291,43 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0 }) =>
         ctx.arc(x, y, 12 * pulse, 0, Math.PI * 2);
         ctx.stroke();
 
-        ctx.fillStyle = dotColor;
-        ctx.shadowColor = dotColor;
-        ctx.shadowBlur = 8 * pulse;
-        ctx.beginPath();
-        ctx.arc(x, y, 7, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        const img = imagesRef.current[user.id];
+        const avatarSize = 26 * pulse;
 
-        ctx.fillStyle = '#0B0B12';
-        ctx.beginPath();
-        ctx.arc(x, y, 3, 0, Math.PI * 2);
-        ctx.fill();
+        if (img && img !== 'loading') {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(x, y, avatarSize / 2, 0, Math.PI * 2);
+          ctx.closePath();
+          ctx.clip();
+          ctx.drawImage(img, x - avatarSize / 2, y - avatarSize / 2, avatarSize, avatarSize);
+          ctx.restore();
 
-        if (scanning && Math.abs(dotAngle - sweepAngleRef.current) < 0.25) {
-          ctx.fillStyle = textColor;
-          ctx.font = '11px system-ui, -apple-system, sans-serif';
-          ctx.textAlign = 'left';
-          ctx.fillText(user.name || 'User', x + 14, y + 4);
+          ctx.strokeStyle = dotColor;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(x, y, avatarSize / 2 + 1, 0, Math.PI * 2);
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = dotColor;
+          ctx.shadowColor = dotColor;
+          ctx.shadowBlur = 8 * pulse;
+          ctx.beginPath();
+          ctx.arc(x, y, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+
+          ctx.fillStyle = '#0B0B12';
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fill();
         }
+
+        // Always show the user's name next to their marker
+        ctx.fillStyle = textColor;
+        ctx.font = '11px system-ui, -apple-system, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(user.name || 'User', x + 14, y + 4);
       });
     }
 
