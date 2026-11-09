@@ -99,6 +99,8 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
   const discoveryFilter = {
     _id: { $ne: req.user._id },
     isDiscoverable: true,
+    'locationGeo.coordinates.0': { $type: 'number' },
+    'locationGeo.coordinates.1': { $type: 'number' },
     $or: [
       { isOnline: true },
       { lastSeen: { $gte: new Date(Date.now() - 10 * 60 * 1000) } },
@@ -153,23 +155,31 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
     ];
   }
 
-  // Use MongoDB $near with 2dsphere index - much more efficient!
-  // Note: GeoJSON coordinates are [longitude, latitude]
-  const users = await User.find(discoveryFilter)
-    .select('name avatar bio location locationGeo isOnline isDiscoverable lastSeen gender age interests')
-    .skip(skip)
-    .limit(limitNum)
-    .lean(); // Use lean() for better performance
+  let users = [];
+  let total = 0;
+  try {
+    // Use MongoDB $near with 2dsphere index - much more efficient!
+    // Note: GeoJSON coordinates are [longitude, latitude]
+    users = await User.find(discoveryFilter)
+      .select('name avatar bio location locationGeo isOnline isDiscoverable lastSeen gender age interests')
+      .skip(skip)
+      .limit(limitNum)
+      .lean(); // Use lean() for better performance
 
-  // Get total count for pagination.
-  // $near cannot be used with countDocuments (requires sorting), so use $geoWithin.
-  const countFilter = { ...discoveryFilter };
-  countFilter.locationGeo = {
-    $geoWithin: {
-      $centerSphere: [[userLon, userLat], maxDist / 6371000],
-    },
-  };
-  const total = await User.countDocuments(countFilter);
+    // Get total count for pagination.
+    // $near cannot be used with countDocuments (requires sorting), so use $geoWithin.
+    const countFilter = { ...discoveryFilter };
+    countFilter.locationGeo = {
+      $geoWithin: {
+        $centerSphere: [[userLon, userLat], maxDist / 6371000],
+      },
+    };
+    total = await User.countDocuments(countFilter);
+  } catch (geoError) {
+    console.error('Nearby geo query failed:', geoError.message);
+    users = [];
+    total = 0;
+  }
 
   // Format response with calculated distances
   const nearbyUsers = users.map((user) => {
