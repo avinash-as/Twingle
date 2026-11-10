@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 
-export function useGeolocation() {
+export function useGeolocation(options = {}) {
+  const { autoFetch = true } = options;
   const [location, setLocation] = useState(() => {
     try {
       const cached = localStorage.getItem('twingle_last_location');
@@ -84,11 +85,11 @@ export function useGeolocation() {
   }, []);
 
   useEffect(() => {
-    if (!hasFetchedRef.current) {
+    if (autoFetch && !hasFetchedRef.current) {
       hasFetchedRef.current = true;
       getCurrentLocation().catch(() => {});
     }
-  }, []);
+  }, [autoFetch]);
 
   return { location, error, loading, getCurrentLocation, watchLocation };
 }

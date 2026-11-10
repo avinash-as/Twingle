@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Users, Wifi, UserCheck, Search, Sparkles } from 'lucide-react';
 
-const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0, onUserClick }) => {
+const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0, onUserClick, maxDistance = 5000 }) => {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const sweepAngleRef = useRef(-Math.PI / 2);
@@ -143,7 +143,7 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0, onUs
     ctx.textBaseline = 'middle';
     for (let i = 1; i <= 4; i++) {
       const r = (maxR / 4) * i;
-      const dist = Math.round((r / maxR) * 5000);
+      const dist = Math.round((r / maxR) * maxDistance);
       ctx.fillText(`${dist}m`, cx + r + 12, cy);
     }
 

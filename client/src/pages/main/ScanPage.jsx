@@ -15,7 +15,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const ScanPage = () => {
   const { user, updateUser } = useAuth();
-  const { location, error: locationError, loading: locationLoading, getCurrentLocation } = useGeolocation();
+  const { location, error: locationError, loading: locationLoading, getCurrentLocation } = useGeolocation({ autoFetch: false });
   const { scanning, nearbyUsers, scanCount, startScan, stopScan, scanError, scanProgress, scanComplete } = useScanner();
   const { pendingRequests, sendConnectionRequest } = useConnections();
   const { isTracking: bgTracking, startTracking: startBgTracking, isSupported: bgSupported } = useBackgroundLocation();
@@ -30,9 +30,9 @@ const ScanPage = () => {
   const [filters, setFilters] = useState(() => {
     try {
       const cached = localStorage.getItem('twingle_scan_filters');
-      return cached ? JSON.parse(cached) : { gender: '', ageMin: '', ageMax: '', interests: [] };
+      return cached ? JSON.parse(cached) : { gender: '', ageMin: '', ageMax: '', interests: [], maxDistance: 5000 };
     } catch {
-      return { gender: '', ageMin: '', ageMax: '', interests: [] };
+      return { gender: '', ageMin: '', ageMax: '', interests: [], maxDistance: 5000 };
     }
   });
 
@@ -102,7 +102,7 @@ const ScanPage = () => {
     setFilters(prev => ({ ...prev, [field]: value }));
   };
   const handleResetFilters = () => {
-    setFilters({ gender: '', ageMin: '', ageMax: '', interests: [] });
+    setFilters({ gender: '', ageMin: '', ageMax: '', interests: [], maxDistance: 5000 });
     setShowFilters(false);
   };
   const handleApplyFilters = () => {
@@ -130,6 +130,23 @@ const ScanPage = () => {
       localStorage.setItem('twingle_scan_filters', JSON.stringify(filters));
     } catch {}
   }, [filters]);
+
+  if (!location && !locationError && !locationLoading) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center px-4 text-center bg-[#0B0B12]">
+        <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-primary-500/10 flex items-center justify-center">
+          <MapPin className="w-12 h-12 text-primary-400" />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2">Find People Nearby</h2>
+        <p className="text-neutral-500 mb-8 max-w-xs leading-relaxed">
+          Twingle needs your location to discover people near you. Your location is only used while scanning or when you enable sharing.
+        </p>
+        <Button variant="primary" onClick={getCurrentLocation} size="lg" loading={locationLoading} fullWidth>
+          Allow Location Access
+        </Button>
+      </div>
+    );
+  }
 
   if (locationError) {
     return (
@@ -193,6 +210,7 @@ const ScanPage = () => {
               setSelectedUser(user);
               setShowProfile(true);
             }}
+            maxDistance={filters.maxDistance}
           />
         </div>
 
@@ -367,6 +385,25 @@ const ScanPage = () => {
                       }`}
                     >
                       {interest}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-medium text-neutral-300 mb-3">Distance</h4>
+                <div className="flex flex-wrap gap-2">
+                  {[500, 1000, 5000, 10000].map((d) => (
+                    <button
+                      key={d}
+                      onClick={() => handleFilterChange('maxDistance', d)}
+                      className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                        filters.maxDistance === d
+                          ? 'bg-primary-500 text-white'
+                          : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                      }`}
+                    >
+                      {d >= 1000 ? `${d / 1000} km` : `${d} m`}
                     </button>
                   ))}
                 </div>
