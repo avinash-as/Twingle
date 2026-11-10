@@ -200,3 +200,40 @@ input:-webkit-autofill:focus {
   box-shadow: 0 0 0 1000px #151522 inset !important;
   -webkit-text-fill-color: #F8FAFC !important;
 }
+
+/* Light theme overrides */
+html.light {
+  --color-bg: #F8FAFC;
+  --color-bg-elevated: #FFFFFF;
+  --color-border: #E2E8F0;
+  --color-text: #0F172A;
+  --color-text-muted: #475569;
+}
+
+html.light body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+html.light .card,
+html.light .card-interactive {
+  background-color: #FFFFFF;
+  border-color: #E2E8F0;
+  color: #0F172A;
+}
+
+html.light .btn-outline {
+  border-color: #CBD5E1;
+  color: #334155;
+  background-color: #F1F5F9;
+}
+
+html.light .btn-ghost {
+  color: #475569;
+}
+
+html.light .input {
+  background-color: #FFFFFF;
+  border-color: #CBD5E1;
+  color: #0F172A;
+}
