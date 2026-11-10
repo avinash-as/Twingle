@@ -99,6 +99,7 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
   const discoveryFilter = {
     _id: { $ne: req.user._id },
     isDiscoverable: true,
+    ghostMode: { $ne: true },
     'locationGeo.coordinates.0': { $type: 'number' },
     'locationGeo.coordinates.1': { $type: 'number' },
     $or: [
@@ -355,13 +356,14 @@ export const getMapNearbyUsers = asyncHandler(async (req, res) => {
       },
     },
   })
-    .select('name avatar bio location locationGeo locationSharingAudience lastLocationUpdate isOnline')
+    .select('name avatar bio location locationGeo locationSharingAudience lastLocationUpdate isOnline blockedUsers')
     .lean();
 
   // Filter by audience / friendship
   const results = [];
   for (const u of candidates) {
     if (blockedSet.has(u._id.toString())) continue;
+    if ((u.blockedUsers || []).some((id) => id.toString() === req.user._id.toString())) continue;
     if (u.locationSharingAudience === 'nobody') continue;
 
     if (u.locationSharingAudience === 'friends') {
