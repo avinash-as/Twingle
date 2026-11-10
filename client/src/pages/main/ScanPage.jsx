@@ -168,8 +168,8 @@ const ScanPage = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0B0B12]">
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 space-y-8 bg-mesh">
+    <div className="flex-1 flex flex-col bg-[#0B0B12] overflow-hidden">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 space-y-4 bg-mesh overflow-hidden">
         <div className="text-center w-full max-w-md animate-in">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-500/10 text-primary-400 text-sm font-medium mb-4 animate-in animate-in-delayed">
             <Search className="w-4 h-4" />
