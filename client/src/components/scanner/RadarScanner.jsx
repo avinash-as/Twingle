@@ -313,18 +313,20 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0, onUs
           ctx.arc(x, y, avatarSize / 2 + 1, 0, Math.PI * 2);
           ctx.stroke();
         } else {
+          const size = 24 * pulse;
           ctx.fillStyle = dotColor;
           ctx.shadowColor = dotColor;
           ctx.shadowBlur = 8 * pulse;
           ctx.beginPath();
-          ctx.arc(x, y, 7, 0, Math.PI * 2);
+          ctx.arc(x, y, size / 2, 0, Math.PI * 2);
           ctx.fill();
           ctx.shadowBlur = 0;
 
-          ctx.fillStyle = '#0B0B12';
-          ctx.beginPath();
-          ctx.arc(x, y, 3, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = `bold ${Math.round(size * 0.5)}px system-ui, -apple-system, sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText((user.name || '?').charAt(0).toUpperCase(), x, y);
         }
 
         // Always show the user's name next to their marker
