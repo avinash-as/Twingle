@@ -17,7 +17,7 @@ export function useScanner() {
   const scanningRef = useRef(false);
   const progressIntervalRef = useRef(null);
 
-  const SCAN_DURATION = 30000; // 30 seconds
+  const SCAN_DURATION = 15000; // 15 seconds
 
   const startScan = useCallback(async (location, filters = {}) => {
     if (scanningRef.current || !location) return;
