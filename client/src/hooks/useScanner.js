@@ -122,13 +122,14 @@ export function useScanner() {
   useEffect(() => {
     const handleUserOnline = (data) => {
       setNearbyUsers((prev) => {
-        if (prev.some((u) => u.id === data.userId)) return prev;
-        return [...prev, { id: data.userId, name: data.name, avatar: data.avatar, distance: 0, isOnline: true }];
+        const list = Array.isArray(prev) ? prev : [];
+        if (list.some((u) => u.id === data.userId)) return list;
+        return [...list, { id: data.userId, name: data.name, avatar: data.avatar, distance: 0, isOnline: true }];
       });
     };
 
     const handleUserOffline = (data) => {
-      setNearbyUsers((prev) => prev.filter((u) => u.id !== data.userId));
+      setNearbyUsers((prev) => (Array.isArray(prev) ? prev.filter((u) => u.id !== data.userId) : []));
     };
 
     on('user_online', handleUserOnline);

@@ -31,11 +31,11 @@ export function useConnections() {
     };
 
     const handleConnectionAccepted = (data) => {
-      setPendingRequests((prev) => prev.filter((r) => r.connectionId !== data.connectionId));
+      setPendingRequests((prev) => (Array.isArray(prev) ? prev.filter((r) => r.connectionId !== data.connectionId) : []));
     };
 
     const handleConnectionRejected = (data) => {
-      setPendingRequests((prev) => prev.filter((r) => r.connectionId !== data.connectionId));
+      setPendingRequests((prev) => (Array.isArray(prev) ? prev.filter((r) => r.connectionId !== data.connectionId) : []));
     };
 
     on('connection_request', handleConnectionRequest);
