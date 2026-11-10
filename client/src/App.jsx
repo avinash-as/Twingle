@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Header from './components/common/Header';
 import BottomNav from './components/common/BottomNav';
+import OnboardingModal from './components/common/OnboardingModal';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
 
@@ -19,6 +20,7 @@ import { NavLink } from 'react-router-dom';
 
 function MainLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('twingle_onboarded'));
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0B0B12]">
@@ -26,6 +28,14 @@ function MainLayout() {
       <div className="flex-1 flex flex-col pt-16 pb-20 lg:pb-0">
         <Outlet />
       </div>
+      {showOnboarding && (
+        <OnboardingModal
+          onComplete={() => {
+            localStorage.setItem('twingle_onboarded', 'true');
+            setShowOnboarding(false);
+          }}
+        />
+      )}
       <BottomNav />
       {menuOpen && (
         <div className="fixed inset-0 z-30 lg:hidden">
