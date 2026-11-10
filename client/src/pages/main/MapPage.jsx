@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import { MapPin, RefreshCw, Eye, EyeOff, Ghost, Users, Navigation } from 'lucide-react';
 import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
@@ -34,6 +36,25 @@ function RecenterMap({ center }) {
   useEffect(() => {
     if (center) map.setView(center, map.getZoom());
   }, [center, map]);
+  return null;
+}
+
+function ClusterMarkers({ users, createIcon, onUserClick }) {
+  const map = useMap();
+  useEffect(() => {
+    const cluster = L.markerClusterGroup();
+    users.forEach((u) => {
+      const marker = L.marker([u.latitude, u.longitude], { icon: createIcon(u.avatar, u.name) });
+      const popup = `<div style="min-width:140px"><strong>${u.name}</strong><br/>${u.distanceFormatted} away<br/>${u.isOnline ? 'Online' : 'Offline'}${u.lastSeen ? `<br/>Last seen: ${new Date(u.lastSeen).toLocaleTimeString()}` : ''}</div>`;
+      marker.bindPopup(popup);
+      marker.on('click', () => onUserClick && onUserClick(u));
+      cluster.addLayer(marker);
+    });
+    map.addLayer(cluster);
+    return () => {
+      map.removeLayer(cluster);
+    };
+  }, [users, map, createIcon, onUserClick]);
   return null;
 }
 
@@ -212,11 +233,13 @@ export default function MapPage() {
             <TileLayer
               attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              errorTileUrl="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
           ) : (
             <TileLayer
               attribution='&copy; OpenStreetMap contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              errorTileUrl="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
           )}
           {location && (
@@ -224,17 +247,7 @@ export default function MapPage() {
               <Popup>You are here</Popup>
             </Marker>
           )}
-          {nearby.map((u) => (
-            <Marker key={u.id} position={[u.latitude, u.longitude]} icon={createProfileIcon(u.avatar, u.name)}>
-              <Popup>
-                <div className="text-sm">
-                  <div className="font-semibold">{u.name}</div>
-                  <div className="text-neutral-500">{u.distanceFormatted} away</div>
-                  <div className="text-xs">{u.isOnline ? 'Online' : 'Offline'}</div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+          <ClusterMarkers users={nearby} createIcon={createProfileIcon} />
           <RecenterMap center={location ? [location.latitude, location.longitude] : null} />
         </MapContainer>
       </div>

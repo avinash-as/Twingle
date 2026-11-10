@@ -3,7 +3,7 @@
  * Handles background sync, push notifications, and offline caching
  */
 
-const CACHE_NAME = 'twingle-v2';
+const CACHE_NAME = 'twingle-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -35,20 +35,44 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+const TILE_HOSTS = ['tile.openstreetmap.org', 'server.arcgisonline.com'];
+
 // Fetch event - serve from cache, fall back to network
 self.addEventListener('fetch', (event) => {
   const isLocal = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 
-  // Never intercept non-GET or cross-origin requests (e.g. API calls).
-  // Letting the browser handle them avoids service-worker interference with
-  // CORS preflight and keeps auth requests reliable.
   let requestUrl;
   try {
     requestUrl = new URL(event.request.url);
   } catch (e) {
     return;
   }
-  if (event.request.method !== 'GET' || requestUrl.origin !== self.location.origin) {
+
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  const isTile = TILE_HOSTS.some((host) => requestUrl.hostname.includes(host));
+
+  // Cache map tiles for offline use (cache-first).
+  if (isTile) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        }).catch(() => cached);
+      })
+    );
+    return;
+  }
+
+  // Only handle same-origin requests for the app shell.
+  if (requestUrl.origin !== self.location.origin) {
     return;
   }
 
