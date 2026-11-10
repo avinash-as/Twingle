@@ -477,6 +477,7 @@ const ScanPage = () => {
                 onMessage={handleOpenChat}
                 onBlock={handleBlock}
                 onReport={handleReport}
+                onRescan={handleScan}
                 connectingId={connectingId}
               />
             </div>

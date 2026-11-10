@@ -149,6 +149,7 @@ export default function ChatPage() {
         icon={MessageCircle}
         title="Start a conversation"
         description="Send a message to break the ice"
+        action={<Button variant="primary" size="sm" onClick={() => navigate('/scan')}>Find People Nearby</Button>}
       />
     );
   }

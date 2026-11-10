@@ -1,4 +1,4 @@
-import { MapPin, UserCheck, Clock, Send, MessageSquare, Sparkles, Wifi } from 'lucide-react';
+import { MapPin, UserCheck, Clock, Send, MessageSquare, Sparkles, Wifi, RefreshCw } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import Avatar from '../ui/Avatar';
 import Badge from '../ui/Badge';
@@ -143,30 +143,38 @@ const UserCard = memo(({ user, onConnect, onMessage, onBlock, onReport, connecti
 
 UserCard.displayName = 'UserCard';
 
-const EmptyState = memo(() => (
+const EmptyState = memo(({ onRescan }) => (
   <div className="text-center py-16 animate-in">
     <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary-900/30 dark:to-primary-900/10 flex items-center justify-center animate-float">
       <MapPin className="w-12 h-12 text-primary-500 dark:text-primary-400" />
     </div>
     <h3 className="text-lg font-semibold text-white mb-2">No one nearby yet</h3>
-    <p className="text-neutral-500 mb-8 max-w-xs mx-auto leading-relaxed">
-      Move around or try scanning again to find people near you
+    <p className="text-neutral-500 mb-6 max-w-xs mx-auto leading-relaxed">
+      Move around, make sure location is allowed, and try scanning again.
     </p>
-    <div className="flex items-center justify-center gap-2 text-sm text-primary-400">
-      <Sparkles className="w-4 h-4 animate-pulse" />
-      <span>Waiting for discoverable users...</span>
+    <div className="flex flex-col items-center gap-3">
+      {onRescan && (
+        <Button variant="primary" size="sm" onClick={onRescan}>
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Scan Again
+        </Button>
+      )}
+      <div className="flex items-center justify-center gap-2 text-sm text-primary-400">
+        <Sparkles className="w-4 h-4 animate-pulse" />
+        <span>Waiting for discoverable users...</span>
+      </div>
     </div>
   </div>
 ));
 
 EmptyState.displayName = 'EmptyState';
 
-const NearbyUsersList = ({ users, onConnect, onMessage, onBlock, onReport, connectingId, loading }) => {
+const NearbyUsersList = ({ users, onConnect, onMessage, onBlock, onReport, onRescan, connectingId, loading }) => {
   const safeUsers = Array.isArray(users) ? users : [];
   const handleConnect = useCallback((id) => onConnect(id), [onConnect]);
 
   if (!safeUsers.length) {
-    return <EmptyState />;
+    return <EmptyState onRescan={onRescan} />;
   }
 
   return (
