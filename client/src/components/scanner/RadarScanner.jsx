@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { Users, Wifi, UserCheck, Search, Sparkles } from 'lucide-react';
 
-const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0 }) => {
+const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0, onUserClick }) => {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const sweepAngleRef = useRef(-Math.PI / 2);
@@ -14,6 +14,7 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0 }) =>
   const canvasSizeRef = useRef({ width: 0, height: 0, cx: 0, cy: 0, maxR: 0 });
   const colorsRef = useRef({});
   const imagesRef = useRef({});
+  const positionsRef = useRef([]);
 
   const colors = useMemo(() => ({
     isDark: true,
@@ -263,6 +264,7 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0 }) =>
       const textColor = '#F8FAFC';
       const now = timestamp;
       
+      const positions = [];
       nearbyUsers.forEach((user, index) => {
         if (!user.distance) return;
         
@@ -274,6 +276,8 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0 }) =>
         
         const x = cx + Math.cos(dotAngle) * dotRadius;
         const y = cy + Math.sin(dotAngle) * dotRadius;
+
+        positions.push({ x, y, user });
 
         const pulse = Math.sin(now / 250 + index * 2) * 0.2 + 0.8;
         const isOnline = user.isOnline !== false;
@@ -329,6 +333,7 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0 }) =>
         ctx.textAlign = 'left';
         ctx.fillText(user.name || 'User', x + 14, y + 4);
       });
+      positionsRef.current = positions;
     }
 
     const primaryColor = '#7C3AED';
@@ -376,9 +381,25 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0 }) =>
     <div className="relative w-full aspect-square max-w-[380px] mx-auto">
       <canvas 
         ref={canvasRef} 
-        className="w-full h-full" 
+        className="w-full h-full cursor-pointer" 
         aria-label="Radar scanner detecting nearby users" 
         style={{ willReadFrequently: false }}
+        onClick={(e) => {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          const positions = positionsRef.current || [];
+          let nearest = null;
+          let minDist = 28;
+          for (const p of positions) {
+            const d = Math.hypot(p.x - x, p.y - y);
+            if (d < minDist) {
+              minDist = d;
+              nearest = p.user;
+            }
+          }
+          if (nearest && onUserClick) onUserClick(nearest);
+        }}
       />
       
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

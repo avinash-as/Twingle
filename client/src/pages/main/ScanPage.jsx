@@ -189,6 +189,10 @@ const ScanPage = () => {
             nearbyUsers={nearbyUsers}
             scanCount={scanCount}
             scanProgress={scanProgress}
+            onUserClick={(user) => {
+              setSelectedUser(user);
+              setShowProfile(true);
+            }}
           />
         </div>
 
