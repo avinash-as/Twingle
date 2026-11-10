@@ -13,7 +13,7 @@ export function useChat() {
   const fetchConversations = useCallback(async () => {
     try {
       const response = await api.get('/messages/conversations');
-      setConversations(response.data);
+      setConversations(response.data?.conversations || []);
     } catch (error) {
       console.error('Fetch conversations error:', error);
     }
@@ -23,7 +23,7 @@ export function useChat() {
     setLoading(true);
     try {
       const response = await api.get(`/messages/${userId}`);
-      setMessages(response.data);
+      setMessages(response.data?.messages || []);
       setActiveConversation(userId);
     } catch (error) {
       console.error('Fetch messages error:', error);
