@@ -1,15 +1,18 @@
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { lazy, Suspense } from 'react';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import Header from './components/common/Header';
 import BottomNav from './components/common/BottomNav';
-import ScanPage from './pages/main/ScanPage';
 import ErrorBoundary from './components/common/ErrorBoundary';
-import MapPage from './pages/main/MapPage';
-import ChatsPage from './pages/main/ChatsPage';
-import ChatPage from './pages/main/ChatPage';
-import ProfilePage from './pages/main/ProfilePage';
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
+import LoadingSpinner from './components/common/LoadingSpinner';
+
+const ScanPage = lazy(() => import('./pages/main/ScanPage'));
+const MapPage = lazy(() => import('./pages/main/MapPage'));
+const ChatsPage = lazy(() => import('./pages/main/ChatsPage'));
+const ChatPage = lazy(() => import('./pages/main/ChatPage'));
+const ProfilePage = lazy(() => import('./pages/main/ProfilePage'));
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/auth/RegisterPage'));
 import { useState } from 'react';
 import { Radar, MessageSquare, Users, User } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
@@ -55,6 +58,7 @@ function MainLayout() {
 
 function App() {
   return (
+    <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-[#0B0B12]"><LoadingSpinner size="lg" /></div>}>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -71,6 +75,7 @@ function App() {
       <Route path="/" element={<Navigate to="/scan" replace />} />
       <Route path="*" element={<Navigate to="/scan" replace />} />
     </Routes>
+    </Suspense>
   );
 }
 

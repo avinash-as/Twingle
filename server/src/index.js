@@ -206,6 +206,19 @@ initializeSocket(io);
 
 app.set('io', io);
 
+// Periodically expire stale locations (users inactive for > 1 hour)
+setInterval(async () => {
+  try {
+    const { default: User } = await import('./models/User.js');
+    await User.updateMany(
+      { lastSeen: { $lt: new Date(Date.now() - 60 * 60 * 1000) } },
+      { $unset: { locationGeo: '' }, locationSharing: false, nearbyDiscovery: false }
+    );
+  } catch (e) {
+    console.error('Stale location cleanup failed:', e.message);
+  }
+}, 10 * 60 * 1000);
+
 httpServer.listen(config.port, () => {
   console.log(`Server running in ${config.nodeEnv} mode on port ${config.port}`);
   if (isDev) {

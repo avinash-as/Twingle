@@ -28,6 +28,21 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // Retry network errors a few times (helps with Render cold starts)
+    if (!error.response && originalRequest && !originalRequest._retryCount) {
+      originalRequest._retryCount = 0;
+    }
+    if (!error.response && originalRequest && originalRequest._retryCount < 3) {
+      originalRequest._retryCount += 1;
+      await new Promise((resolve) => setTimeout(resolve, 500 * originalRequest._retryCount));
+      return api(originalRequest);
+    }
+
+    // Surface rate limiting
+    if (error.response?.status === 429) {
+      console.warn('Rate limited. Please slow down.');
+    }
+
     // If 401 and not already retried, attempt a token refresh
     if (
       error.response?.status === 401 &&
