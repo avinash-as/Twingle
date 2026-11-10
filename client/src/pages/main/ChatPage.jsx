@@ -30,8 +30,10 @@ export default function ChatPage() {
     clearActiveConversation,
   } = useChat();
   const [typing, setTyping] = useState(false);
+  const [otherTyping, setOtherTyping] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
   const [replyTo, setReplyTo] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -73,14 +75,25 @@ export default function ChatPage() {
       ));
     };
 
+    const handleUserTyping = (data) => {
+      if (data.userId === userId) setOtherTyping(true);
+    };
+    const handleUserStopTyping = (data) => {
+      if (data.userId === userId) setOtherTyping(false);
+    };
+
     socket.on('message_edited', handleMessageEdited);
     socket.on('message_deleted', handleMessageDeleted);
     socket.on('message_reaction_updated', handleMessageReactionUpdated);
+    socket.on('user_typing', handleUserTyping);
+    socket.on('user_stop_typing', handleUserStopTyping);
 
     return () => {
       socket.off('message_edited', handleMessageEdited);
       socket.off('message_deleted', handleMessageDeleted);
       socket.off('message_reaction_updated', handleMessageReactionUpdated);
+  socket.off('user_typing', handleUserTyping);
+  socket.off('user_stop_typing', handleUserStopTyping);
     };
   }, [socket]);
 
@@ -92,20 +105,34 @@ export default function ChatPage() {
   const handleSend = useCallback(async (messageData) => {
     if (typingTimeout) clearTimeout(typingTimeout);
     setTyping(false);
+    emit('stop_typing', { receiverId: userId });
     await sendMessage(userId, messageData.content, messageData.messageType, messageData.mediaUrl, messageData.mediaMetadata, messageData.replyTo);
     setReplyTo(null);
-  }, [userId, sendMessage, typingTimeout]);
+  }, [userId, sendMessage, typingTimeout, emit]);
 
   const handleTyping = () => {
     setTyping(true);
+    emit('typing', { receiverId: userId });
     if (typingTimeout) clearTimeout(typingTimeout);
-    setTypingTimeout(setTimeout(() => setTyping(false), 2000));
+    setTypingTimeout(setTimeout(() => {
+      setTyping(false);
+      emit('stop_typing', { receiverId: userId });
+    }, 2000));
+  };
+
+  const handleStopTyping = () => {
+    setTyping(false);
+    if (typingTimeout) clearTimeout(typingTimeout);
+    emit('stop_typing', { receiverId: userId });
   };
 
   const handleReply = (message) => {
     setReplyTo(message);
   };
 
+  const filteredMessages = searchQuery
+    ? messages.filter((m) => (m.content || '').toLowerCase().includes(searchQuery.toLowerCase()))
+    : messages;
   const otherUser = messages[0]?.sender?._id === currentUser?._id ? messages[0]?.receiver : messages[0]?.sender;
 
   if (loading && messages.length === 0) {
@@ -157,8 +184,17 @@ export default function ChatPage() {
         </button>
       </header>
 
+      <div className="px-4 py-2 border-b border-neutral-800/50">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search messages..."
+          className="w-full px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-white placeholder-neutral-500 focus:outline-none focus:border-primary-500 text-sm"
+        />
+      </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesEndRef}>
-        {messages.map((message, index) => (
+        {filteredMessages.map((message, index) => (
           <MessageBubble
             key={message._id}
             message={message}
@@ -167,7 +203,7 @@ export default function ChatPage() {
             onReply={handleReply}
           />
         ))}
-        {typing && (
+        {otherTyping && (
           <TypingIndicator userName={otherUser?.name} />
         )}
         <div ref={messagesEndRef} />
@@ -178,6 +214,7 @@ export default function ChatPage() {
         disabled={sending}
         placeholder="Type a message..."
         replyTo={replyTo}
+        onTyping={handleTyping}
       />
     </div>
   );

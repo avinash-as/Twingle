@@ -5,10 +5,11 @@ import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import { formatDistanceToNow } from 'date-fns';
 
-const UserCard = memo(({ user, onConnect, onMessage, connectingId, loading }) => {
+const UserCard = memo(({ user, onConnect, onMessage, onBlock, onReport, connectingId, loading }) => {
   const handleConnect = useCallback(() => onConnect(user.id), [onConnect, user.id]);
 
   const isConnecting = connectingId === user.id;
+  const status = user.connectionStatus || 'none';
 
   return (
     <div className="card-interactive p-4">
@@ -76,7 +77,7 @@ const UserCard = memo(({ user, onConnect, onMessage, connectingId, loading }) =>
             variant={connectingId === user.id ? 'primary' : 'outline'}
             size="sm"
             onClick={() => onConnect(user.id)}
-            disabled={connectingId === user.id || loading}
+            disabled={connectingId === user.id || loading || status === 'accepted' || status === 'pending'}
             loading={connectingId === user.id}
             className="w-[110px]"
             fullWidth
@@ -87,6 +88,16 @@ const UserCard = memo(({ user, onConnect, onMessage, connectingId, loading }) =>
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   Connecting...
                 </span>
+              </>
+            ) : status === 'accepted' ? (
+              <>
+                <UserCheck className="w-4 h-4" />
+                Connected
+              </>
+            ) : status === 'pending' ? (
+              <>
+                <Clock className="w-4 h-4" />
+                Pending
               </>
             ) : (
               <>
@@ -107,6 +118,23 @@ const UserCard = memo(({ user, onConnect, onMessage, connectingId, loading }) =>
             <MessageSquare className="w-4 h-4" />
             <span className="hidden sm:inline">Message</span>
           </Button>
+
+          <div className="flex gap-1">
+            <button
+              onClick={() => onBlock && onBlock(user.id)}
+              className="text-xs text-neutral-500 hover:text-red-400"
+              title="Block"
+            >
+              Block
+            </button>
+            <button
+              onClick={() => onReport && onReport(user.id)}
+              className="text-xs text-neutral-500 hover:text-yellow-400"
+              title="Report"
+            >
+              Report
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -133,7 +161,7 @@ const EmptyState = memo(() => (
 
 EmptyState.displayName = 'EmptyState';
 
-const NearbyUsersList = ({ users, onConnect, onMessage, connectingId, loading }) => {
+const NearbyUsersList = ({ users, onConnect, onMessage, onBlock, onReport, connectingId, loading }) => {
   const safeUsers = Array.isArray(users) ? users : [];
   const handleConnect = useCallback((id) => onConnect(id), [onConnect]);
 
@@ -149,6 +177,8 @@ const NearbyUsersList = ({ users, onConnect, onMessage, connectingId, loading })
           user={user}
           onConnect={handleConnect}
           onMessage={onMessage}
+          onBlock={onBlock}
+          onReport={onReport}
           connectingId={connectingId}
           loading={loading}
         />

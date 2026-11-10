@@ -161,7 +161,7 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
     // Use MongoDB $near with 2dsphere index - much more efficient!
     // Note: GeoJSON coordinates are [longitude, latitude]
     users = await User.find(discoveryFilter)
-      .select('name avatar bio location locationGeo isOnline isDiscoverable lastSeen gender age interests')
+      .select('name avatar bio location locationGeo isOnline isDiscoverable lastSeen gender age interests blockedUsers')
       .skip(skip)
       .limit(limitNum)
       .lean(); // Use lean() for better performance
@@ -180,6 +180,21 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
     users = [];
     total = 0;
   }
+
+  // Exclude blocked users (both directions)
+  const currentUserDoc = await User.findById(req.user._id).select('blockedUsers');
+  const blockedSet = new Set((currentUserDoc?.blockedUsers || []).map((id) => id.toString()));
+  users = users.filter((u) => !blockedSet.has(u._id.toString()) && !(u.blockedUsers || []).some((id) => id.toString() === req.user._id.toString()));
+
+  // Fetch connection statuses for these users in one query
+  const connectionDocs = await Connection.find({
+    $or: [{ sender: req.user._id }, { receiver: req.user._id }],
+  }).select('sender receiver status');
+  const connectionStatusMap = new Map();
+  connectionDocs.forEach((c) => {
+    const otherId = c.sender.toString() === req.user._id.toString() ? c.receiver.toString() : c.sender.toString();
+    connectionStatusMap.set(otherId, c.status);
+  });
 
   // Format response with calculated distances
   const nearbyUsers = users.map((user) => {
@@ -212,6 +227,7 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
       distanceFormatted: formatDistance(distance),
       isOnline: user.isOnline,
       lastSeen: user.lastSeen,
+      connectionStatus: connectionStatusMap.get(user._id.toString()) || 'none',
     };
   });
 
@@ -388,6 +404,35 @@ export const getMapNearbyUsers = asyncHandler(async (req, res) => {
   }
 
   res.json({ users: results, count: results.length });
+});
+
+export const blockUser = asyncHandler(async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'userId required', 400);
+  const user = await User.findById(req.user._id);
+  if (!user) throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
+  if (!user.blockedUsers.includes(userId)) {
+    user.blockedUsers.push(userId);
+    await user.save();
+  }
+  res.json({ message: 'User blocked', blockedUsers: user.blockedUsers });
+});
+
+export const unblockUser = asyncHandler(async (req, res) => {
+  const { userId } = req.body;
+  const user = await User.findById(req.user._id);
+  if (!user) throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
+  user.blockedUsers = user.blockedUsers.filter((id) => id.toString() !== userId);
+  await user.save();
+  res.json({ message: 'User unblocked', blockedUsers: user.blockedUsers });
+});
+
+export const reportUser = asyncHandler(async (req, res) => {
+  const { userId, reason } = req.body;
+  if (!userId) throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'userId required', 400);
+  // In production, store reports in a dedicated collection. For now, log.
+  console.warn(`User report: reporter=${req.user._id} reported=${userId} reason=${reason || 'unspecified'}`);
+  res.json({ message: 'Report submitted' });
 });
 
 export const setDiscoverable = asyncHandler(async (req, res) => {

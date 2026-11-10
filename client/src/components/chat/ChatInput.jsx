@@ -2,10 +2,11 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Paperclip, Smile, X, Mic, Image as ImageIcon } from 'lucide-react';
 import Button from '../ui/Button';
 
-export default function ChatInput({ onSend, disabled, placeholder = 'Type a message...', replyTo }) {
+export default function ChatInput({ onSend, disabled, placeholder = 'Type a message...', replyTo, onTyping }) {
   const [message, setMessage] = useState('');
   const [replyToMessage, setReplyToMessage] = useState(replyTo || null);
   const [messageType, setMessageType] = useState('text');
+  const [mediaUrl, setMediaUrl] = useState('');
   const textareaRef = useRef(null);
 
   useEffect(() => {
@@ -22,9 +23,11 @@ export default function ChatInput({ onSend, disabled, placeholder = 'Type a mess
     onSend({
       content: message.trim(),
       messageType,
+      mediaUrl,
       replyTo: replyToMessage?._id || replyToMessage,
     });
     setMessage('');
+    setMediaUrl('');
     setReplyToMessage(null);
     setMessageType('text');
   };
@@ -65,7 +68,7 @@ export default function ChatInput({ onSend, disabled, placeholder = 'Type a mess
         <textarea
           ref={textareaRef}
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={(e) => { setMessage(e.target.value); onTyping && onTyping(); }}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
@@ -92,6 +95,13 @@ export default function ChatInput({ onSend, disabled, placeholder = 'Type a mess
           </button>
           <button
             type="button"
+            onClick={() => {
+              const url = window.prompt('Enter image URL');
+              if (url) {
+                setMediaUrl(url);
+                setMessageType('image');
+              }
+            }}
             className="p-2 text-neutral-500 hover:text-neutral-300 transition-colors"
             title="Image"
           >

@@ -71,10 +71,17 @@ export function useChat() {
     };
   }, [on, off, fetchConversations, activeConversation]);
 
-  const sendMessage = useCallback(async (receiverId, content) => {
+  const sendMessage = useCallback(async (receiverId, content, messageType = 'text', mediaUrl = '', mediaMetadata = null, replyTo = null) => {
     setSending(true);
     try {
-      const response = await api.post('/messages', { receiverId, content });
+      const response = await api.post('/messages', {
+        receiverId,
+        content,
+        messageType,
+        mediaUrl,
+        mediaMetadata,
+        replyTo,
+      });
       return response.data;
     } finally {
       setSending(false);

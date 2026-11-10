@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useScanner } from '../../hooks/useScanner';
 import { useConnections } from '../../hooks/useConnections';
+import api from '../../utils/api';
 import { useBackgroundLocation } from '../../hooks/useBackgroundLocation';
 import RadarScanner from '../../components/scanner/RadarScanner';
 import NearbyUsersList from '../../components/scanner/NearbyUsersList';
@@ -60,6 +61,25 @@ const ScanPage = () => {
   const handleOpenChat = useCallback((userId) => {
     navigate(`/chat/${userId}`);
   }, [navigate]);
+
+  const handleBlock = useCallback(async (userId) => {
+    try {
+      await api.post('/users/block', { userId });
+      alert('User blocked');
+    } catch (e) {
+      console.error('Block failed', e);
+    }
+  }, []);
+
+  const handleReport = useCallback(async (userId) => {
+    const reason = window.prompt('Reason for report?');
+    try {
+      await api.post('/users/report', { userId, reason });
+      alert('Report submitted');
+    } catch (e) {
+      console.error('Report failed', e);
+    }
+  }, []);
 
   const handleConnect = async (userId) => {
     setConnectingId(userId);
@@ -455,6 +475,8 @@ const ScanPage = () => {
                 users={nearbyUsers}
                 onConnect={handleConnect}
                 onMessage={handleOpenChat}
+                onBlock={handleBlock}
+                onReport={handleReport}
                 connectingId={connectingId}
               />
             </div>

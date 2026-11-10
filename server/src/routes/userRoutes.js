@@ -2,6 +2,9 @@ import express from 'express';
 import {
   updateLocation,
   getNearbyUsers,
+  blockUser,
+  unblockUser,
+  reportUser,
   getUserProfile,
   updateProfile,
   setDiscoverable,
@@ -40,6 +43,9 @@ router.get('/location/privacy', getLocationPrivacy);
 router.put('/location/sharing', profileLimiter, updateLocationSharing);
 router.put('/nearby-discovery', profileLimiter, updateNearbyDiscovery);
 router.put('/ghost-mode', profileLimiter, updateGhostMode);
+router.post('/block', profileLimiter, blockUser);
+router.post('/unblock', profileLimiter, unblockUser);
+router.post('/report', profileLimiter, reportUser);
 router.get('/map/nearby', scanLimiter, getMapNearbyUsers);
 
 export default router;
