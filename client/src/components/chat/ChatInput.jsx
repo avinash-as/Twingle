@@ -42,7 +42,7 @@ export default function ChatInput({ onSend, disabled, placeholder = 'Type a mess
   const clearReply = () => setReplyToMessage(null);
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-end gap-2 p-4 bg-neutral-900/50 border-t border-neutral-800">
+    <form onSubmit={handleSubmit} className="flex items-end gap-2 p-4 bg-neutral-900/50 border-t border-neutral-800" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
       {replyToMessage && (
         <div className="flex-1 bg-neutral-800/50 border border-neutral-700 rounded-lg p-2 mb-2">
           <div className="flex items-center justify-between mb-1">

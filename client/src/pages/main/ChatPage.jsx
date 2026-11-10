@@ -34,6 +34,7 @@ export default function ChatPage() {
   const [typingTimeout, setTypingTimeout] = useState(null);
   const [replyTo, setReplyTo] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewportHeight, setViewportHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
@@ -41,6 +42,20 @@ export default function ChatPage() {
       fetchMessages(userId);
     }
   }, [userId, activeConversation, fetchMessages]);
+
+  // Adjust layout for mobile virtual keyboard
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => setViewportHeight(vv.height);
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -155,7 +170,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0B0B12]">
+    <div className="flex flex-col bg-[#0B0B12]" style={{ height: viewportHeight || '100%' }}>
       <header className="flex items-center gap-3 px-4 py-3 bg-[#0B0B12]/95 backdrop-blur-md border-b border-neutral-800/50 sticky top-0 z-20">
         <button
           onClick={() => navigate(-1)}
