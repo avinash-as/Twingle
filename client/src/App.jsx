@@ -59,7 +59,7 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       
-      <Route element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
+      <Route element={<ProtectedRoute><ErrorBoundary><MainLayout /></ErrorBoundary></ProtectedRoute>}>
         <Route path="/scan" element={<ErrorBoundary><ScanPage /></ErrorBoundary>} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/chats" element={<ChatsPage />} />
