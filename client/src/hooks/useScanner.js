@@ -75,7 +75,7 @@ export function useScanner() {
       });
 
       // Store results but wait for scan duration to complete
-      const scanResults = response.data?.users || [];
+      const scanResults = Array.isArray(response.data?.users) ? response.data.users : [];
 
       // Show discovered users on the radar immediately while scanning
       setNearbyUsers(scanResults);

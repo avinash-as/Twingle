@@ -134,15 +134,16 @@ const EmptyState = memo(() => (
 EmptyState.displayName = 'EmptyState';
 
 const NearbyUsersList = ({ users, onConnect, onMessage, connectingId, loading }) => {
+  const safeUsers = Array.isArray(users) ? users : [];
   const handleConnect = useCallback((id) => onConnect(id), [onConnect]);
 
-  if (!users.length) {
+  if (!safeUsers.length) {
     return <EmptyState />;
   }
 
   return (
     <div className="space-y-3 max-h-[440px] overflow-y-auto pr-1 animate-in">
-      {users.map((user, index) => (
+      {safeUsers.map((user, index) => (
         <UserCard
           key={user.id}
           user={user}
