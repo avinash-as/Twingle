@@ -237,3 +237,16 @@ html.light .input {
   border-color: #CBD5E1;
   color: #0F172A;
 }
+
+/* Broad light-mode overrides for common hardcoded dark utilities */
+html.light .bg-\[\#0B0B12\] { background-color: #F8FAFC !important; }
+html.light .text-white { color: #0F172A !important; }
+html.light .bg-neutral-900\/50 { background-color: #FFFFFF !important; }
+html.light .bg-neutral-800\/50 { background-color: #F1F5F9 !important; }
+html.light .bg-neutral-800 { background-color: #E2E8F0 !important; }
+html.light .bg-neutral-900 { background-color: #F8FAFC !important; }
+html.light .border-neutral-800\/50 { border-color: #E2E8F0 !important; }
+html.light .border-neutral-700 { border-color: #CBD5E1 !important; }
+html.light .text-neutral-300 { color: #334155 !important; }
+html.light .text-neutral-400 { color: #475569 !important; }
+html.light .text-neutral-500 { color: #64748B !important; }
