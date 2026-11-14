@@ -6,6 +6,7 @@ import BottomNav from './components/common/BottomNav';
 import OnboardingModal from './components/common/OnboardingModal';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
+import SplashScreen from './components/common/SplashScreen';
 
 const ScanPage = lazy(() => import('./pages/main/ScanPage'));
 const MapPage = lazy(() => import('./pages/main/MapPage'));
@@ -67,8 +68,11 @@ function MainLayout() {
 }
 
 function App() {
+  const [showSplash, setShowSplash] = useState(true);
   return (
-    <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-[#0B0B12]"><LoadingSpinner size="lg" /></div>}>
+    <>
+      {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
+      <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-[#0B0B12]"><LoadingSpinner size="lg" /></div>}>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
@@ -86,6 +90,7 @@ function App() {
       <Route path="*" element={<Navigate to="/scan" replace />} />
     </Routes>
     </Suspense>
+    </>
   );
 }
 
