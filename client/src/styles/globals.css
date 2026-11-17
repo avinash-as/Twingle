@@ -8,8 +8,8 @@
   --color-border: #2A2A3A;
   --color-text: #F8FAFC;
   --color-text-muted: #A1A1AA;
-  --color-primary: #E11D48;
-  --color-primary-hover: #BE123C;
+  --color-primary: #4F46E5;
+  --color-primary-hover: #4338CA;
   --color-accent: #22D3EE;
 }
 
@@ -27,7 +27,7 @@ html {
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background-color: var(--color-bg);
+  background: linear-gradient(180deg, #0B0B12 0%, #111827 100%);
   color: var(--color-text);
   min-height: 100vh;
   line-height: 1.5;
