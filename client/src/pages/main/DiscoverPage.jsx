@@ -23,23 +23,37 @@ export default function DiscoverPage() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [direction, setDirection] = useState(0);
+  const [history, setHistory] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({ maxDistance: 25000, ageMin: '', ageMax: '', interests: [], onlineOnly: false, gender: '' });
 
   const fetchNearby = useCallback(async (loc) => {
     if (!loc) return;
     setLoading(true);
     try {
       await api.post('/users/location', { latitude: loc.latitude, longitude: loc.longitude });
-      const res = await api.get('/users/nearby', {
-        params: { latitude: loc.latitude, longitude: loc.longitude, maxDistance: 25000 },
-      });
-      setUsers(res.data?.users || []);
+      const params = {
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        maxDistance: filters.maxDistance,
+      };
+      if (filters.ageMin) params.ageMin = filters.ageMin;
+      if (filters.ageMax) params.ageMax = filters.ageMax;
+      if (filters.gender) params.gender = filters.gender;
+      if (filters.interests.length) params.interests = filters.interests.join(',');
+      const res = await api.get('/users/nearby', { params });
+      let list = res.data?.users || [];
+      if (filters.onlineOnly) list = list.filter((u) => u.isOnline);
+      console.log('Discover nearby count:', list.length, 'location:', loc);
+      setUsers(list);
       setIndex(0);
+      setHistory([]);
     } catch (e) {
       console.error('discover fetch failed', e);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
     if (location) fetchNearby(location);
@@ -49,13 +63,37 @@ export default function DiscoverPage() {
   const current = users[index];
 
   const handleSwipe = async (dir) => {
+    if (!current) return;
+    setHistory((h) => [...h, current]);
     setDirection(dir);
-    if (dir === 1 && current) {
+    if (dir === 1) {
       try {
         await sendConnectionRequest(current.id);
       } catch (e) {
         console.error('connect failed', e);
       }
+    }
+    setTimeout(() => {
+      setIndex((i) => i + 1);
+      setDirection(0);
+    }, 250);
+  };
+
+  const handleRewind = () => {
+    if (!history.length) return;
+    const prev = history[history.length - 1];
+    setHistory((h) => h.slice(0, -1));
+    setUsers((u) => [prev, ...u.slice(index)]);
+    setIndex(0);
+  };
+
+  const handleSuperLike = async () => {
+    if (!current) return;
+    setHistory((h) => [...h, current]);
+    try {
+      await sendConnectionRequest(current.id);
+    } catch (e) {
+      console.error('superlike failed', e);
     }
     setTimeout(() => {
       setIndex((i) => i + 1);
@@ -91,10 +129,56 @@ export default function DiscoverPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3">
         <h1 className="text-xl font-bold text-white">Discover</h1>
-        <Button variant="ghost" size="sm" onClick={() => navigate('/scan')}>
-          Scan
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="sm" onClick={() => setShowFilters(!showFilters)}>
+            Filters
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/scan')}>
+            Scan
+          </Button>
+        </div>
       </div>
+
+      {showFilters && (
+        <div className="px-4 pb-3 space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {[5000, 10000, 25000].map((d) => (
+              <button
+                key={d}
+                onClick={() => setFilters((f) => ({ ...f, maxDistance: d }))}
+                className={`px-3 py-1 rounded-full text-xs ${filters.maxDistance === d ? 'bg-primary-500 text-white' : 'bg-neutral-800 text-neutral-300'}`}
+              >
+                {d >= 1000 ? `${d / 1000} km` : `${d} m`}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="number"
+              placeholder="Min age"
+              value={filters.ageMin}
+              onChange={(e) => setFilters((f) => ({ ...f, ageMin: e.target.value }))}
+              className="w-20 px-2 py-1 rounded bg-neutral-900 border border-neutral-700 text-white text-xs"
+            />
+            <input
+              type="number"
+              placeholder="Max age"
+              value={filters.ageMax}
+              onChange={(e) => setFilters((f) => ({ ...f, ageMax: e.target.value }))}
+              className="w-20 px-2 py-1 rounded bg-neutral-900 border border-neutral-700 text-white text-xs"
+            />
+            <button
+              onClick={() => setFilters((f) => ({ ...f, onlineOnly: !f.onlineOnly }))}
+              className={`px-3 py-1 rounded-full text-xs ${filters.onlineOnly ? 'bg-green-500 text-white' : 'bg-neutral-800 text-neutral-300'}`}
+            >
+              Online only
+            </button>
+          </div>
+          <Button variant="primary" size="sm" onClick={() => location && fetchNearby(location)}>
+            Apply
+          </Button>
+        </div>
+      )}
 
       {/* Card stack */}
       <div className="flex-1 flex items-center justify-center px-4 relative">
@@ -145,9 +229,15 @@ export default function DiscoverPage() {
                       ))}
                     </div>
                   )}
-                  <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center justify-between pt-2 gap-2">
+                    <Button variant="outline" size="sm" onClick={handleRewind} disabled={!history.length}>
+                      Rewind
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => handleSwipe(-1)}>
                       <X className="w-5 h-5" />
+                    </Button>
+                    <Button variant="primary" size="sm" onClick={handleSuperLike}>
+                      <Star className="w-5 h-5" />
                     </Button>
                     <Button variant="primary" size="sm" onClick={() => handleSwipe(1)}>
                       <Heart className="w-5 h-5" />
