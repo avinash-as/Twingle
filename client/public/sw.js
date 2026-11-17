@@ -3,11 +3,10 @@
  * Handles background sync, push notifications, and offline caching
  */
 
-const CACHE_NAME = 'twingle-v3';
+const CACHE_NAME = 'twingle-v4';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/favicon.svg',
+  '/manifest.json',
 ];
 
 // Install event - cache static assets
@@ -78,6 +77,20 @@ self.addEventListener('fetch', (event) => {
 
   if (isLocal) {
     event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Navigation requests: network-first to avoid stale app shell/chunk mismatches.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then((response) => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      }).catch(() => caches.match(event.request).then((r) => r || caches.match('/')))
+    );
     return;
   }
 
