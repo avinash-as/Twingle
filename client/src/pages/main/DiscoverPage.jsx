@@ -125,7 +125,7 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0B0B12] overflow-hidden">
+    <div className="flex-1 flex flex-col bg-[#0B0B12] overflow-hidden h-screen">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3">
         <h1 className="text-xl font-bold text-white">Discover</h1>
@@ -199,7 +199,7 @@ export default function DiscoverPage() {
               }}
             >
               <Card className="overflow-hidden shadow-2xl">
-                <div className="relative h-96 bg-neutral-800">
+                <div className="relative h-64 bg-neutral-800">
                   {current.avatar ? (
                     <img src={current.avatar} alt={current.name} className="w-full h-full object-cover" />
                   ) : (
