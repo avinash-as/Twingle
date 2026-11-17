@@ -63,7 +63,8 @@ export default function ChatsPage() {
     fetchConversations();
   }, [fetchConversations]);
 
-  const filteredConversations = conversations.filter((c) =>
+  const safeConversations = Array.isArray(conversations) ? conversations : [];
+  const filteredConversations = safeConversations.filter((c) =>
     c.user.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
