@@ -92,6 +92,8 @@ const ScanPage = () => {
       }
     } catch (error) {
       console.error('Connection failed:', error);
+      const msg = error?.response?.data?.message || error?.message || 'Connection failed';
+      alert(msg);
     } finally {
       setConnectingId(null);
     }
