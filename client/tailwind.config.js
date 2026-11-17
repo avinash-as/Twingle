@@ -7,6 +7,13 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+      },
+      boxShadow: {
+        'glow': '0 0 40px rgba(99, 102, 241, 0.15)',
+        'card': '0 8px 32px rgba(0, 0, 0, 0.25)',
+      },
       colors: {
         primary: {
           50: '#EEF2FF',

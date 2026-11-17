@@ -85,7 +85,7 @@ body {
   }
 
   .card {
-    @apply bg-neutral-900/50 backdrop-blur-sm rounded-2xl border border-neutral-800/50 shadow-xl;
+    @apply bg-neutral-900/60 backdrop-blur-md rounded-2xl border border-neutral-700/50 shadow-card;
   }
 
   .card-interactive {
