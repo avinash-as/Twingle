@@ -10,6 +10,7 @@ import LoadingSpinner from './components/common/LoadingSpinner';
 import SplashScreen from './components/common/SplashScreen';
 
 const ScanPage = lazy(() => import('./pages/main/ScanPage'));
+const DiscoverPage = lazy(() => import('./pages/main/DiscoverPage'));
 const MapPage = lazy(() => import('./pages/main/MapPage'));
 const ChatsPage = lazy(() => import('./pages/main/ChatsPage'));
 const ChatPage = lazy(() => import('./pages/main/ChatPage'));
@@ -80,6 +81,7 @@ function App() {
       
       <Route element={<ProtectedRoute><ErrorBoundary><ConnectionsProvider><MainLayout /></ConnectionsProvider></ErrorBoundary></ProtectedRoute>}>
         <Route path="/scan" element={<ErrorBoundary><ScanPage /></ErrorBoundary>} />
+        <Route path="/discover" element={<ErrorBoundary><DiscoverPage /></ErrorBoundary>} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/chats" element={<ChatsPage />} />
         <Route path="/chat/:userId" element={<ChatPage />} />

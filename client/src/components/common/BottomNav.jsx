@@ -1,8 +1,9 @@
 import { NavLink } from 'react-router-dom';
-import { Radar, Map, MessageSquare, Users, User } from 'lucide-react';
+import { Radar, Map, MessageSquare, Users, User, Heart } from 'lucide-react';
 
 export default function BottomNav() {
   const navItems = [
+    { path: '/discover', icon: Heart, label: 'Discover' },
     { path: '/scan', icon: Radar, label: 'Nearby' },
     { path: '/map', icon: Map, label: 'Map' },
     { path: '/chats', icon: MessageSquare, label: 'Chats' },
@@ -11,7 +12,7 @@ export default function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#0B0B12]/95 backdrop-blur-md border-t border-neutral-800/50 lg:hidden">
-      <div className="grid grid-cols-4">
+      <div className="grid grid-cols-5">
         {navItems.map((item) => (
           <NavLink
             key={item.path}
