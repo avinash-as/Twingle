@@ -20,8 +20,9 @@ export function useConnections() {
     fetchPendingRequests();
 
     const handleConnectionRequest = (data) => {
+      console.log('Received connection request:', data);
       setPendingRequests((prev) => [
-        ...prev,
+        ...(Array.isArray(prev) ? prev : []),
         {
           connectionId: data.connectionId,
           sender: data.sender,
@@ -42,10 +43,14 @@ export function useConnections() {
     on('connection_accepted', handleConnectionAccepted);
     on('connection_rejected', handleConnectionRejected);
 
+    const onFocus = () => fetchPendingRequests();
+    window.addEventListener('focus', onFocus);
+
     return () => {
       off('connection_request', handleConnectionRequest);
       off('connection_accepted', handleConnectionAccepted);
       off('connection_rejected', handleConnectionRejected);
+      window.removeEventListener('focus', onFocus);
     };
   }, [on, off, fetchPendingRequests]);
 
