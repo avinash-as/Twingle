@@ -4,7 +4,7 @@ import { MapPin, Users, RefreshCw, Sparkles, Search, Wifi, UserCheck, Share2, Qr
 import { useAuth } from '../../context/AuthContext';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useScanner } from '../../hooks/useScanner';
-import { useConnections } from '../../hooks/useConnections';
+import { useConnections } from '../../context/ConnectionsContext';
 import api from '../../utils/api';
 import { useBackgroundLocation } from '../../hooks/useBackgroundLocation';
 import RadarScanner from '../../components/scanner/RadarScanner';

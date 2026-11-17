@@ -1,8 +1,10 @@
-import { useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import api from '../utils/api';
-import { useSocket } from '../context/SocketContext';
+import { useSocket } from './SocketContext';
 
-export function useConnections() {
+const ConnectionsContext = createContext(null);
+
+export function ConnectionsProvider({ children }) {
   const { emit, on, off } = useSocket();
   const [pendingRequests, setPendingRequests] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -68,25 +70,25 @@ export function useConnections() {
     setLoading(true);
     try {
       const response = await api.put(`/connections/accept/${connectionId}`);
-      fetchPendingRequests();
+      setPendingRequests((prev) => (Array.isArray(prev) ? prev.filter((r) => r.connectionId !== connectionId) : []));
       return response.data;
     } finally {
       setLoading(false);
     }
-  }, [fetchPendingRequests]);
+  }, []);
 
   const rejectConnection = useCallback(async (connectionId) => {
     setLoading(true);
     try {
       const response = await api.put(`/connections/reject/${connectionId}`);
-      fetchPendingRequests();
+      setPendingRequests((prev) => (Array.isArray(prev) ? prev.filter((r) => r.connectionId !== connectionId) : []));
       return response.data;
     } finally {
       setLoading(false);
     }
-  }, [fetchPendingRequests]);
+  }, []);
 
-  return {
+  const value = {
     pendingRequests,
     loading,
     sendConnectionRequest,
@@ -94,4 +96,12 @@ export function useConnections() {
     rejectConnection,
     fetchPendingRequests,
   };
+
+  return <ConnectionsContext.Provider value={value}>{children}</ConnectionsContext.Provider>;
+}
+
+export function useConnections() {
+  const ctx = useContext(ConnectionsContext);
+  if (!ctx) throw new Error('useConnections must be used within ConnectionsProvider');
+  return ctx;
 }

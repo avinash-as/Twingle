@@ -4,6 +4,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import Header from './components/common/Header';
 import BottomNav from './components/common/BottomNav';
 import OnboardingModal from './components/common/OnboardingModal';
+import { ConnectionsProvider } from './context/ConnectionsContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import SplashScreen from './components/common/SplashScreen';
@@ -77,7 +78,7 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       
-      <Route element={<ProtectedRoute><ErrorBoundary><MainLayout /></ErrorBoundary></ProtectedRoute>}>
+      <Route element={<ProtectedRoute><ErrorBoundary><ConnectionsProvider><MainLayout /></ConnectionsProvider></ErrorBoundary></ProtectedRoute>}>
         <Route path="/scan" element={<ErrorBoundary><ScanPage /></ErrorBoundary>} />
         <Route path="/map" element={<MapPage />} />
         <Route path="/chats" element={<ChatsPage />} />
