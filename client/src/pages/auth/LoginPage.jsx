@@ -30,7 +30,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-[#0B0B12] relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-[#08090A] relative overflow-hidden">
       <div className="absolute inset-0 bg-mesh" />
       <div className="absolute top-20 left-1/2 -translate-x-1/2 w-72 h-72 rounded-full bg-primary-500/10 blur-3xl" />
       <div className="absolute bottom-20 right-10 w-96 h-96 rounded-full bg-accent-500/10 blur-3xl" />

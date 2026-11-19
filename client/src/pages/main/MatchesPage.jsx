@@ -43,7 +43,7 @@ export default function MatchesPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#0B0B12]">
+      <div className="flex-1 flex items-center justify-center bg-[#08090A]">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -51,7 +51,7 @@ export default function MatchesPage() {
 
   if (!matches.length) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#0B0B12] px-6 text-center">
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#08090A] px-6 text-center">
         <div className="w-24 h-24 rounded-full bg-primary-500/10 flex items-center justify-center mb-6">
           <HeartIcon />
         </div>
@@ -65,7 +65,7 @@ export default function MatchesPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0B0B12]">
+    <div className="flex-1 flex flex-col bg-[#08090A]">
       <div className="px-4 py-3">
         <h1 className="text-xl font-bold text-white">Matches</h1>
       </div>

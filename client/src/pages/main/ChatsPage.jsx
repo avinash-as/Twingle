@@ -74,7 +74,7 @@ export default function ChatsPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0B0B12]">
+    <div className="flex-1 flex flex-col bg-[#08090A]">
       <div className="p-4 space-y-4 animate-in">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Messages</h1>

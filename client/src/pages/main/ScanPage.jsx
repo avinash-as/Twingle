@@ -155,7 +155,7 @@ const ScanPage = () => {
 
   if (!location && !locationError && !locationLoading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center px-4 text-center bg-[#0B0B12]">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 text-center bg-[#08090A]">
         <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-primary-500/10 flex items-center justify-center">
           <MapPin className="w-12 h-12 text-primary-400" />
         </div>
@@ -172,7 +172,7 @@ const ScanPage = () => {
 
   if (locationError) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center px-4 text-center bg-[#0B0B12]">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 text-center bg-[#08090A]">
         <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-red-100/50 dark:bg-red-900/20 flex items-center justify-center animate-float">
           <MapPin className="w-12 h-12 text-red-500 dark:text-red-400" />
         </div>
@@ -190,7 +190,7 @@ const ScanPage = () => {
 
   if (scanError) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center px-4 text-center bg-[#0B0B12]">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 text-center bg-[#08090A]">
         <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-red-100/50 dark:bg-red-900/20 flex items-center justify-center animate-float">
           <Search className="w-12 h-12 text-red-500 dark:text-red-400" />
         </div>
@@ -207,7 +207,7 @@ const ScanPage = () => {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0B0B12] overflow-hidden">
+    <div className="flex-1 flex flex-col bg-[#08090A] overflow-hidden">
       <div className="flex-1 flex flex-col items-center justify-center px-4 py-4 space-y-4 bg-mesh overflow-hidden">
         <div className="text-center w-full max-w-md animate-in">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary-500/10 text-primary-400 text-sm font-medium mb-4 animate-in animate-in-delayed">
@@ -337,7 +337,7 @@ const ScanPage = () => {
       {/* Filters Panel */}
       {showFilters && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in" onClick={setShowFilters(false)}>
-          <div className="w-full max-w-md bg-[#0B0B12] rounded-2xl border border-neutral-700 p-6 animate-in" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full max-w-md bg-[#08090A] rounded-2xl border border-neutral-700 p-6 animate-in" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-white">Discovery Filters</h3>
               <button

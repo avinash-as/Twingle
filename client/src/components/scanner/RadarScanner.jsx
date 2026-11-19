@@ -353,7 +353,7 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0, onUs
     ctx.arc(cx, cy, 16, 0, Math.PI * 2);
     ctx.stroke();
 
-    ctx.fillStyle = '#0B0B12';
+    ctx.fillStyle = '#08090A';
     ctx.beginPath();
     ctx.arc(cx, cy, 5, 0, Math.PI * 2);
     ctx.fill();

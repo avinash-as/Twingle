@@ -50,7 +50,7 @@ export default function Avatar({ src, name, size = 'md', status, className = '',
 
       {status && (
         <span
-          className={`absolute bottom-0 right-0 rounded-full border-2 border-[#0B0B12] ${statusSizeClasses[size]} ${statusClasses[status]}`}
+          className={`absolute bottom-0 right-0 rounded-full border-2 border-[#08090A] ${statusSizeClasses[size]} ${statusClasses[status]}`}
         />
       )}
     </div>

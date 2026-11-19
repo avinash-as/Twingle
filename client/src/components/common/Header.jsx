@@ -30,7 +30,7 @@ export default function Header({ onMenuClick }) {
   }, [darkMode]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-[#0B0B12]/80 backdrop-blur-md border-b border-neutral-800/50">
+    <header className="fixed top-0 left-0 right-0 z-40 bg-[#08090A]/80 backdrop-blur-md border-b border-neutral-800/50">
       <div className="max-w-2xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-3">

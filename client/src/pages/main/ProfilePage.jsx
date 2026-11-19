@@ -78,14 +78,14 @@ export default function ProfilePage() {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#0B0B12]">
+      <div className="flex-1 flex items-center justify-center bg-[#08090A]">
         <LoadingSpinner size="lg" />
       </div>
     );
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0B0B12]">
+    <div className="flex-1 flex flex-col bg-[#08090A]">
       <div className="relative">
         <div className="h-48 bg-gradient-to-r from-primary-600 via-primary-500 to-accent-500" />
         <div className="absolute bottom-0 left-0 right-0 -translate-y-1/2 px-4">
@@ -93,7 +93,7 @@ export default function ProfilePage() {
             <div className="relative mb-2">
               <Avatar src={user?.avatar} name={user?.name} size="2xl" status={user?.isOnline ? 'online' : 'offline'} />
               {user?.isVerified && (
-                <div className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full border-2 border-[#0B0B12] flex items-center justify-center shadow-lg">
+                <div className="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full border-2 border-[#08090A] flex items-center justify-center shadow-lg">
                   <CheckCircle className="w-4 h-4 text-white" />
                 </div>
               )}

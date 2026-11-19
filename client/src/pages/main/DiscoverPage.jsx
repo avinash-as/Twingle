@@ -103,7 +103,7 @@ export default function DiscoverPage() {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#0B0B12]">
+      <div className="flex-1 flex items-center justify-center bg-[#08090A]">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -111,7 +111,7 @@ export default function DiscoverPage() {
 
   if (!users.length || index >= users.length) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-[#0B0B12] px-6 text-center">
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#08090A] px-6 text-center">
         <div className="w-24 h-24 rounded-full bg-primary-500/10 flex items-center justify-center mb-6">
           <Heart className="w-12 h-12 text-primary-400" />
         </div>
@@ -125,7 +125,7 @@ export default function DiscoverPage() {
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-[#0B0B12] overflow-hidden h-screen">
+    <div className="flex-1 flex flex-col bg-[#08090A] overflow-hidden h-screen">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3">
         <h1 className="text-xl font-bold text-white">Discover</h1>

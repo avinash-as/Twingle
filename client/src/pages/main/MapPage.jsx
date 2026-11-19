@@ -159,7 +159,7 @@ export default function MapPage() {
 
   if (locLoading && !location) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-[#0B0B12]">
+      <div className="flex-1 flex items-center justify-center bg-[#08090A]">
         <LoadingSpinner size="lg" />
       </div>
     );
@@ -168,7 +168,7 @@ export default function MapPage() {
   const center = location ? [location.latitude, location.longitude] : [20.5937, 78.9629];
 
   return (
-    <div className="flex-1 relative bg-[#0B0B12] overflow-hidden" style={{ minHeight: '100%' }}>
+    <div className="flex-1 relative bg-[#08090A] overflow-hidden" style={{ minHeight: '100%' }}>
       {/* Consent modal */}
       {showConsent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
@@ -252,7 +252,7 @@ export default function MapPage() {
 
       {/* Nearby list */}
       <div className="absolute bottom-4 left-4 right-4 z-[1000] max-h-48 overflow-y-auto">
-        <Card className="p-3 space-y-2 bg-[#0B0B12]/90 backdrop-blur">
+        <Card className="p-3 space-y-2 bg-[#08090A]/90 backdrop-blur">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-white flex items-center gap-2">
               <Users className="w-4 h-4" /> Nearby on map ({nearby.length})

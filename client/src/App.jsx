@@ -27,7 +27,7 @@ function MainLayout() {
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('twingle_onboarded'));
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#0B0B12]">
+    <div className="min-h-screen flex flex-col bg-[#08090A]">
       <Header onMenuClick={() => setMenuOpen(!menuOpen)} />
       <div className="flex-1 flex flex-col pt-16 pb-20 lg:pb-0">
         <Outlet />
@@ -75,7 +75,7 @@ function App() {
   return (
     <>
       {showSplash && <SplashScreen onFinish={() => setShowSplash(false)} />}
-      <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-[#0B0B12]"><LoadingSpinner size="lg" /></div>}>
+      <Suspense fallback={<div className="flex-1 flex items-center justify-center bg-[#08090A]"><LoadingSpinner size="lg" /></div>}>
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
