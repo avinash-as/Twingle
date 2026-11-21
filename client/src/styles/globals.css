@@ -46,7 +46,7 @@ body {
   }
 
   .btn-primary {
-    @apply btn bg-gradient-to-r from-primary-600 to-primary-500 text-white hover:from-primary-500 hover:to-primary-400 focus-visible:ring-primary-500 shadow-lg shadow-primary-500/25;
+    @apply btn bg-primary-500 text-white hover:bg-primary-400 focus-visible:ring-primary-500 shadow-sm;
   }
 
   .btn-outline {
@@ -82,11 +82,11 @@ body {
   }
 
   .input {
-    @apply w-full px-4 py-3.5 rounded-xl bg-neutral-900/50 border border-neutral-700 text-white placeholder-neutral-500 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all duration-200;
+    @apply w-full px-3.5 py-2.5 rounded-lg bg-[#0F1011] border border-[#1F2023] text-white placeholder-[#8A8F98] focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/30 transition-all duration-150;
   }
 
   .card {
-    @apply bg-neutral-900/60 backdrop-blur-md rounded-2xl border border-neutral-700/50 shadow-card;
+    @apply bg-[#0F1011] rounded-xl border border-[#1F2023] shadow-sm;
   }
 
   .card-interactive {
