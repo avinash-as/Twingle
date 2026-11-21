@@ -65,23 +65,6 @@ export default function DiscoverPage() {
 
   const current = users[index];
 
-  const handleRewind = async () => {
-    try {
-      await api.post('/users/rewind');
-      if (history.length) {
-        setHistory((h) => h.slice(0, -1));
-        setIndex((i) => Math.max(0, i - 1));
-      }
-    } catch (e) {
-      console.error('rewind failed', e);
-    }
-  };
-
-  const handleSuperLike = async () => {
-    if (!current) return;
-    await handleSwipe(1);
-  };
-
   useEffect(() => {
     const handleMatch = (data) => setMatchUser(data?.user || null);
     on('match', handleMatch);
