@@ -6,6 +6,7 @@ import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useGeolocation } from '../../hooks/useGeolocation';
 import { useConnections } from '../../context/ConnectionsContext';
+import { useSocket } from '../../context/SocketContext';
 import Avatar from '../../components/ui/Avatar';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
@@ -16,7 +17,9 @@ export default function DiscoverPage() {
   const { user } = useAuth();
   const { location, getCurrentLocation } = useGeolocation();
   const { sendConnectionRequest } = useConnections();
+  const { on, off } = useSocket();
   const navigate = useNavigate();
+  const [matchUser, setMatchUser] = useState(null);
 
   const [users, setUsers] = useState([]);
   const [index, setIndex] = useState(0);
@@ -62,15 +65,45 @@ export default function DiscoverPage() {
 
   const current = users[index];
 
+  const handleRewind = async () => {
+    try {
+      await api.post('/users/rewind');
+      if (history.length) {
+        setHistory((h) => h.slice(0, -1));
+        setIndex((i) => Math.max(0, i - 1));
+      }
+    } catch (e) {
+      console.error('rewind failed', e);
+    }
+  };
+
+  const handleSuperLike = async () => {
+    if (!current) return;
+    await handleSwipe(1);
+  };
+
+  useEffect(() => {
+    const handleMatch = (data) => setMatchUser(data?.user || null);
+    on('match', handleMatch);
+    return () => off('match', handleMatch);
+  }, [on, off]);
+
   const handleSwipe = async (dir) => {
     if (!current) return;
     setHistory((h) => [...h, current]);
     setDirection(dir);
     if (dir === 1) {
       try {
-        await sendConnectionRequest(current.id);
+        const res = await sendConnectionRequest(current.id);
+        if (res?.matched) setMatchUser(current);
       } catch (e) {
         console.error('connect failed', e);
+      }
+    } else if (dir === -1) {
+      try {
+        await api.post('/users/pass', { userId: current.id });
+      } catch (e) {
+        console.error('pass failed', e);
       }
     }
     setTimeout(() => {
@@ -283,6 +316,29 @@ export default function DiscoverPage() {
               </Button>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* Match modal (Tinder-like) */}
+      {matchUser && (
+        <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setMatchUser(null)}>
+          <div className="text-center space-y-4 animate-in" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-4xl font-extrabold text-white gradient-text">It's a Match!</h2>
+            <p className="text-neutral-400">You and {matchUser.name} liked each other.</p>
+            <div className="flex items-center justify-center gap-6">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-600 to-accent-500 flex items-center justify-center text-3xl font-bold text-white">
+                {user?.name?.charAt(0)}
+              </div>
+              <Heart className="w-8 h-8 text-pink-400" />
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary-600 to-accent-500 flex items-center justify-center text-3xl font-bold text-white">
+                {matchUser.name?.charAt(0)}
+              </div>
+            </div>
+            <div className="flex gap-3 pt-4">
+              <Button variant="outline" onClick={() => setMatchUser(null)}>Keep Swiping</Button>
+              <Button variant="primary" onClick={() => { setMatchUser(null); navigate(`/chat/${matchUser.id}`); }}>Send Message</Button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -16,6 +16,27 @@ export const sendConnectionRequest = asyncHandler(async (req, res) => {
     throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
   }
 
+  // Mutual like => instant match (Tinder-like)
+  const reversePending = await Connection.findOne({
+    sender: receiverId,
+    receiver: senderId,
+    status: 'pending',
+  });
+
+  if (reversePending) {
+    reversePending.status = 'accepted';
+    await reversePending.save();
+
+    const sender = await User.findById(senderId).select('name avatar bio');
+    const receiver = await User.findById(receiverId).select('name avatar bio');
+
+    const io = req.app.get('io');
+    io.to(senderId.toString()).emit('match', { user: receiver });
+    io.to(receiverId.toString()).emit('match', { user: sender });
+
+    return res.status(200).json({ matched: true, message: "It's a match!" });
+  }
+
   const existingConnection = await Connection.findOne({
     $or: [
       { sender: senderId, receiver: receiverId },

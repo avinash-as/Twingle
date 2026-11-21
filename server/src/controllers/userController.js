@@ -142,6 +142,12 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
     throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
   }
 
+  // Exclude users the current user has already passed on (Tinder-like)
+  discoveryFilter._id = {
+    $ne: req.user._id,
+    $nin: currentUser.passedUsers || [],
+  };
+
   // Apply gender preference if no explicit gender filter
   if (!gender && currentUser.genderPreference && currentUser.genderPreference !== 'any' && currentUser.genderPreference !== 'prefer_not_to_say') {
     discoveryFilter.gender = currentUser.genderPreference;
@@ -451,6 +457,25 @@ export const setDiscoverable = asyncHandler(async (req, res) => {
   }
 
   res.json({ isDiscoverable: user.isDiscoverable });
+});
+
+export const passUser = asyncHandler(async (req, res) => {
+  const { userId } = req.body;
+  if (!userId) {
+    throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'userId is required', 400);
+  }
+  await User.findByIdAndUpdate(req.user._id, { $addToSet: { passedUsers: userId } });
+  res.json({ message: 'Passed' });
+});
+
+export const rewindLastPass = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id);
+  if (!user || !user.passedUsers?.length) {
+    return res.json({ userId: null });
+  }
+  const last = user.passedUsers.pop();
+  await user.save();
+  res.json({ userId: last });
 });
 
 export const getConnectedUsers = asyncHandler(async (req, res) => {

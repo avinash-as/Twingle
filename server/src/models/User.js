@@ -129,6 +129,12 @@ const userSchema = new mongoose.Schema({
       message: 'Cannot have more than 10 interests',
     },
   },
+  // Users this person has passed on (for Tinder-like discovery)
+  passedUsers: {
+    type: [mongoose.Schema.Types.ObjectId],
+    ref: 'User',
+    default: [],
+  },
   genderPreference: {
     type: String,
     enum: ['male', 'female', 'other', 'any', 'prefer_not_to_say'],

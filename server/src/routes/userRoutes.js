@@ -10,6 +10,8 @@ import {
   setDiscoverable,
   getConnectedUsers,
   batchLocation,
+  passUser,
+  rewindLastPass,
   updateLocationSharing,
   updateNearbyDiscovery,
   updateGhostMode,
@@ -34,6 +36,8 @@ router.use(protect);
 
 router.post('/location', locationLimiter, validate(updateLocationSchema), updateLocation);
 router.post('/location/batch', batchLocationLimiter, validate(batchLocationSchema), batchLocation);
+router.post('/pass', passUser);
+router.post('/rewind', rewindLastPass);
 router.get('/nearby', scanLimiter, validate(getNearbyUsersSchema), getNearbyUsers);
 router.get('/connected', getConnectedUsers);
 router.get('/profile/:id', validate(getUserProfileSchema), getUserProfile);
