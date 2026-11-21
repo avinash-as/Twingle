@@ -9,6 +9,7 @@ import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
 import SplashScreen from './components/common/SplashScreen';
 
+const HomePage = lazy(() => import('./pages/main/HomePage'));
 const ScanPage = lazy(() => import('./pages/main/ScanPage'));
 const DiscoverPage = lazy(() => import('./pages/main/DiscoverPage'));
 const MatchesPage = lazy(() => import('./pages/main/MatchesPage'));
@@ -81,6 +82,7 @@ function App() {
       <Route path="/register" element={<RegisterPage />} />
       
       <Route element={<ProtectedRoute><ErrorBoundary><ConnectionsProvider><MainLayout /></ConnectionsProvider></ErrorBoundary></ProtectedRoute>}>
+        <Route path="/home" element={<ErrorBoundary><HomePage /></ErrorBoundary>} />
         <Route path="/scan" element={<ErrorBoundary><ScanPage /></ErrorBoundary>} />
         <Route path="/discover" element={<ErrorBoundary><DiscoverPage /></ErrorBoundary>} />
         <Route path="/matches" element={<ErrorBoundary><MatchesPage /></ErrorBoundary>} />
@@ -91,8 +93,8 @@ function App() {
         <Route path="/connections" element={<div className="flex-1 flex items-center justify-center text-neutral-500">Connections page - Coming soon</div>} />
       </Route>
 
-      <Route path="/" element={<Navigate to="/scan" replace />} />
-      <Route path="*" element={<Navigate to="/scan" replace />} />
+      <Route path="/" element={<Navigate to="/home" replace />} />
+      <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
     </Suspense>
     </>
