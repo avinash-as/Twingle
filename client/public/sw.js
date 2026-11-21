@@ -76,7 +76,7 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (isLocal) {
-    event.respondWith(fetch(event.request));
+    event.respondWith(fetch(event.request).catch(() => new Response('', { status: 404, statusText: 'Not Found' })));
     return;
   }
 
@@ -99,8 +99,8 @@ self.addEventListener('fetch', (event) => {
       if (response) {
         return response;
       }
-      return fetch(event.request);
-    }).catch(() => fetch(event.request))
+      return fetch(event.request).catch(() => new Response('', { status: 404, statusText: 'Not Found' }));
+    }).catch(() => new Response('', { status: 404, statusText: 'Not Found' }))
   );
 });
 
