@@ -19,6 +19,7 @@ import userRoutes from './routes/userRoutes.js';
 import connectionRoutes from './routes/connectionRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
 import pushRoutes from './routes/pushRoutes.js';
+import photoRoutes from './routes/photoRoutes.js';
 
 connectDB();
 
@@ -191,11 +192,15 @@ app.get('/api/metrics', async (req, res) => {
   });
 });
 
+import path from 'path';
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/connections', connectionRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/photos', photoRoutes);
 
 app.use(notFound);
 app.use(errorLogger); // Log errors with request context

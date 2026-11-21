@@ -30,6 +30,8 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [locationPrivacy, setLocationPrivacy] = useState({ locationSharing: false, audience: 'friends', nearbyDiscovery: false, ghostMode: false });
+  const [uploading, setUploading] = useState(false);
+  const [photoIndex, setPhotoIndex] = useState(0);
 
   const availableInterests = ['Music', 'Sports', 'Travel', 'Food', 'Movies', 'Books', 'Gaming', 'Fitness', 'Art', 'Cooking'];
 
@@ -74,6 +76,43 @@ export default function ProfilePage() {
 
   const handleLogout = async () => {
     await logout();
+  };
+
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('photo', file);
+    setUploading(true);
+    try {
+      const res = await api.post('/photos/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      updateUser({ photos: res.data.photos, avatar: res.data.avatar });
+      setPhotoIndex(0);
+    } catch (err) {
+      console.error('photo upload failed', err);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleDeletePhoto = async (url) => {
+    try {
+      const res = await api.delete('/photos', { data: { url } });
+      updateUser({ photos: res.data.photos, avatar: res.data.avatar });
+      setPhotoIndex(0);
+    } catch (err) {
+      console.error('photo delete failed', err);
+    }
+  };
+
+  const handleSetAvatar = async (url) => {
+    try {
+      const res = await api.put('/photos/avatar', { url });
+      updateUser({ avatar: res.data.avatar, photos: res.data.photos });
+    } catch (err) {
+      console.error('set avatar failed', err);
+    }
   };
 
   if (!isAuthenticated) {
@@ -123,6 +162,43 @@ export default function ProfilePage() {
       </div>
 
       <div className="flex-1 px-4 py-8 space-y-6">
+        {/* Photos carousel */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <ImageIcon className="w-5 h-5" /> Photos
+            </h3>
+            <label className="btn btn-sm btn-primary cursor-pointer">
+              {uploading ? 'Uploading...' : 'Add Photo'}
+              <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} disabled={uploading} />
+            </label>
+          </div>
+          {(user?.photos?.length || 0) === 0 ? (
+            <p className="text-sm text-neutral-500">No photos yet. Add up to 6.</p>
+          ) : (
+            <div className="relative">
+              <img src={user.photos[photoIndex]} alt="profile" className="w-full h-64 object-cover rounded-xl" />
+              {user.photos.length > 1 && (
+                <>
+                  <button className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-8 h-8" onClick={() => setPhotoIndex((i) => (i - 1 + user.photos.length) % user.photos.length)}>‹</button>
+                  <button className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full w-8 h-8" onClick={() => setPhotoIndex((i) => (i + 1) % user.photos.length)}>›</button>
+                </>
+              )}
+              <div className="flex gap-2 mt-3 overflow-x-auto">
+                {user.photos.map((p, idx) => (
+                  <div key={p} className="relative">
+                    <img src={p} alt="" className={`w-16 h-16 object-cover rounded-lg cursor-pointer border-2 ${idx === photoIndex ? 'border-primary-500' : 'border-transparent'}`} onClick={() => setPhotoIndex(idx)} />
+                    <button className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 text-xs" onClick={() => handleDeletePhoto(p)}>×</button>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3">
+                <Button variant="outline" size="sm" onClick={() => handleSetAvatar(user.photos[photoIndex])}>Set as avatar</Button>
+              </div>
+            </div>
+          )}
+        </Card>
+
         {editing ? (
           <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-4">
             <Card className="p-6 space-y-4">
