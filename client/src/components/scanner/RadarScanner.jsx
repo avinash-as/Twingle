@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import { Users, Wifi, UserCheck, Search, Sparkles } from 'lucide-react';
 
 const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0, onUserClick, maxDistance = 5000 }) => {
@@ -463,4 +463,4 @@ const RadarScanner = ({ scanning, nearbyUsers, scanCount, scanProgress = 0, onUs
   );
 };
 
-export default RadarScanner;
+export default memo(RadarScanner);

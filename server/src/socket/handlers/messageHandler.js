@@ -1,34 +1,20 @@
 import Connection from '../../models/Connection.js';
 import Message from '../../models/Message.js';
 import { ERROR_CODES } from '../../utils/errors.js';
+import { createMessage } from '../../services/messageService.js';
 
 export const handleSendMessage = async (io, socket, userId, data) => {
   try {
     // Validation already done in socket index
     const { receiverId, content } = data;
 
-    const connection = await Connection.findOne({
-      $or: [
-        { sender: userId, receiver: receiverId },
-        { sender: receiverId, receiver: userId },
-      ],
-      status: 'accepted',
-    });
-
-    if (!connection) {
-      socket.emit('message_error', { code: ERROR_CODES.NOT_CONNECTED, message: 'Not connected to this user' });
+    let populatedMessage;
+    try {
+      populatedMessage = await createMessage(userId, receiverId, { content });
+    } catch (err) {
+      socket.emit('message_error', { code: err.code || ERROR_CODES.NOT_CONNECTED, message: err.message });
       return;
     }
-
-    const message = await Message.create({
-      sender: userId,
-      receiver: receiverId,
-      content,
-    });
-
-    const populatedMessage = await Message.findById(message._id)
-      .populate('sender', 'name avatar')
-      .populate('receiver', 'name avatar');
 
     io.to(receiverId).emit('receive_message', populatedMessage);
     socket.emit('message_sent', populatedMessage);
