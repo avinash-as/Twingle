@@ -47,7 +47,7 @@ export default function DiscoverPage() {
       const res = await api.get('/users/nearby', { params });
       let list = res.data?.users || [];
       if (filters.onlineOnly) list = list.filter((u) => u.isOnline);
-      console.log('Discover nearby count:', list.length, 'location:', loc);
+      // discovery complete
       setUsers(list);
       setIndex(0);
       setHistory([]);

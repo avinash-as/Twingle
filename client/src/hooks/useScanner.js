@@ -43,13 +43,10 @@ export function useScanner() {
     }, 100);
 
     try {
-      console.log('Starting scan with location:', location, 'filters:', filters);
-      
       await api.post('/users/location', {
         latitude: location.latitude,
         longitude: location.longitude,
       });
-      console.log('Location updated successfully');
 
       // Build query params for discovery filters
       const params = {
@@ -66,9 +63,6 @@ export function useScanner() {
 
       // Do the actual search but don't show results until scan completes
       const response = await api.get('/users/nearby', { params });
-      console.log('Nearby users response:', response.data);
-      console.log('Nearby users count:', (response.data?.users || []).length);
-      console.log('Scanned at:', location.latitude, location.longitude);
 
       emit('update_location', {
         latitude: location.latitude,
