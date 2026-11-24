@@ -10,6 +10,22 @@ const api = axios.create({
   },
 });
 
+// Simple in-memory GET cache (30s TTL) to reduce duplicate requests
+const _cache = new Map();
+const CACHE_TTL = 30 * 1000;
+const originalGet = api.get.bind(api);
+api.get = async (url, config = {}) => {
+  if (config?.cache === false) return originalGet(url, config);
+  const key = url + JSON.stringify(config?.params || {});
+  const cached = _cache.get(key);
+  if (cached && Date.now() - cached.time < CACHE_TTL) {
+    return cached.data;
+  }
+  const res = await originalGet(url, config);
+  _cache.set(key, { data: res, time: Date.now() });
+  return res;
+};
+
 // --- Token refresh handling ---
 let isRefreshing = false;
 let refreshSubscribers = [];
