@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, Heart, X, Star, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
