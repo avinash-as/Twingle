@@ -2,129 +2,43 @@ import Connection from '../models/Connection.js';
 import User from '../models/User.js';
 import { AppError, ERROR_CODES, asyncHandler } from '../utils/errors.js';
 import { sendPushToUser } from '../controllers/pushController.js';
+import { createConnectionRequest } from '../services/connectionService.js';
 
 export const sendConnectionRequest = asyncHandler(async (req, res) => {
   const { receiverId } = req.body;
   const senderId = req.user._id;
 
-  if (senderId.toString() === receiverId) {
-    throw new AppError(ERROR_CODES.CANNOT_CONNECT_SELF, 'Cannot connect to yourself', 400);
-  }
-
-  const receiver = await User.findById(receiverId);
-  if (!receiver) {
-    throw new AppError(ERROR_CODES.USER_NOT_FOUND, 'User not found', 404);
-  }
-
-  // Mutual like => instant match (Tinder-like)
-  const reversePending = await Connection.findOne({
-    sender: receiverId,
-    receiver: senderId,
-    status: 'pending',
-  });
-
-  if (reversePending) {
-    reversePending.status = 'accepted';
-    await reversePending.save();
-
-    const sender = await User.findById(senderId).select('name avatar bio');
-    const receiver = await User.findById(receiverId).select('name avatar bio');
-
-    const io = req.app.get('io');
-    io.to(senderId.toString()).emit('match', { user: receiver });
-    io.to(receiverId.toString()).emit('match', { user: sender });
-
-    return res.status(200).json({ matched: true, message: "It's a match!" });
-  }
-
-  const existingConnection = await Connection.findOne({
-    $or: [
-      { sender: senderId, receiver: receiverId },
-      { sender: receiverId, receiver: senderId },
-    ],
-  });
-
-  if (existingConnection) {
-    if (existingConnection.status === 'pending') {
-      throw new AppError(ERROR_CODES.CONNECTION_ALREADY_EXISTS, 'Connection request already pending', 400);
-    }
-    if (existingConnection.status === 'accepted') {
-      throw new AppError(ERROR_CODES.ALREADY_CONNECTED, 'Already connected', 400);
-    }
-    // If rejected, allow new request
-  }
-
-  const connection = await Connection.create({
-    sender: senderId,
-    receiver: receiverId,
-    status: 'pending',
-  });
-
-  const sender = await User.findById(senderId).select('name avatar bio');
+  const { connection, matched, sender, receiver } = await createConnectionRequest(senderId, receiverId);
 
   const io = req.app.get('io');
 
-  // Check for mutual like: if receiver already liked sender, auto-match.
-  const reverseConnection = await Connection.findOne({
-    sender: receiverId,
-    receiver: senderId,
-    status: 'pending',
-  });
-
-  let matched = false;
-  if (reverseConnection) {
-    reverseConnection.status = 'accepted';
-    await reverseConnection.save();
-    connection.status = 'accepted';
-    await connection.save();
-    matched = true;
-
-    const receiver = await User.findById(receiverId).select('name avatar bio');
-
-    // Notify both users of the match
-    io.to(senderId.toString()).emit('match', {
-      connectionId: connection._id,
-      user: {
-        id: receiver._id,
-        name: receiver.name,
-        avatar: receiver.avatar,
-        bio: receiver.bio,
-      },
-    });
-    io.to(receiverId.toString()).emit('match', {
-      connectionId: reverseConnection._id,
-      user: {
-        id: sender._id,
-        name: sender.name,
-        avatar: sender.avatar,
-        bio: sender.bio,
-      },
-    });
-  } else {
-    // Send connection request to receiver
-    io.to(receiverId).emit('connection_request', {
-      connectionId: connection._id,
-      sender: {
-        id: sender._id,
-        name: sender.name,
-        avatar: sender.avatar,
-        bio: sender.bio,
-      },
-    });
-
-    // Send push notification to receiver
-    await sendPushToUser(receiverId, {
-      title: 'New Connection Request',
-      body: `${sender.name} wants to connect with you`,
-      data: {
-        type: 'connection_request',
-        connectionId: connection._id.toString(),
-        senderId: sender._id.toString(),
-      },
-    });
+  if (matched) {
+    io.to(senderId.toString()).emit('match', { user: receiver });
+    io.to(receiverId.toString()).emit('match', { user: sender });
+    return res.status(200).json({ matched: true, message: "It's a match!" });
   }
 
-  res.status(201).json({ connectionId: connection._id, message: matched ? 'It\'s a match!' : 'Connection request sent', matched });
+  io.to(receiverId.toString()).emit('connection_request', {
+    connectionId: connection._id,
+    sender: {
+      id: sender._id,
+      name: sender.name,
+      avatar: sender.avatar,
+      bio: sender.bio,
+    },
+  });
+
+  await sendPushToUser(receiverId, {
+    title: 'New Connection Request',
+    body: `${sender.name} wants to connect with you`,
+    data: {
+      type: 'connection_request',
+      connectionId: connection._id.toString(),
+      senderId: sender._id.toString(),
+    },
+  });
+
+  res.status(201).json({ connectionId: connection._id, message: 'Connection request sent' });
 });
 
 export const getPendingRequests = asyncHandler(async (req, res) => {

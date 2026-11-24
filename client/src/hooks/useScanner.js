@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import api from '../utils/api';
+import { getErrorMessage } from '../utils/errors';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 
@@ -95,7 +96,7 @@ export function useScanner() {
       }, SCAN_DURATION);
     } catch (error) {
       console.error('Scan error:', error);
-      setScanError(error.response?.data?.message || error.message || 'Scan failed');
+      setScanError(getErrorMessage(error, 'Scan failed'));
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }

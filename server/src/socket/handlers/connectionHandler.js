@@ -2,6 +2,7 @@ import User from '../../models/User.js';
 import Connection from '../../models/Connection.js';
 import { ERROR_CODES } from '../../utils/errors.js';
 import { sendPushToUser } from '../../controllers/pushController.js';
+import { createConnectionRequest } from '../../services/connectionService.js';
 
 export const handleUserOnline = async (io, socket, userId) => {
   try {
@@ -91,43 +92,22 @@ export const handleSendConnectionRequest = async (io, socket, userId, data) => {
     // Validation already done in socket index
     const { receiverId } = data;
 
-    if (userId.toString() === receiverId) {
-      socket.emit('connection_error', { code: ERROR_CODES.CANNOT_CONNECT_SELF, message: 'Cannot connect to yourself' });
+    let result;
+    try {
+      result = await createConnectionRequest(userId, receiverId);
+    } catch (err) {
+      socket.emit('connection_error', { code: err.code || ERROR_CODES.INTERNAL_ERROR, message: err.message });
       return;
     }
 
-    const receiver = await User.findById(receiverId);
-    if (!receiver) {
-      socket.emit('connection_error', { code: ERROR_CODES.USER_NOT_FOUND, message: 'User not found' });
+    const { connection, matched, sender, receiver } = result;
+
+    if (matched) {
+      io.to(userId.toString()).emit('match', { user: receiver });
+      io.to(receiverId.toString()).emit('match', { user: sender });
+      socket.emit('connection_request_sent', { connectionId: connection._id, matched: true });
       return;
     }
-
-    const existingConnection = await Connection.findOne({
-      $or: [
-        { sender: userId, receiver: receiverId },
-        { sender: receiverId, receiver: userId },
-      ],
-    });
-
-    if (existingConnection) {
-      if (existingConnection.status === 'pending') {
-        socket.emit('connection_error', { code: ERROR_CODES.CONNECTION_ALREADY_EXISTS, message: 'Connection request already pending' });
-        return;
-      }
-      if (existingConnection.status === 'accepted') {
-        socket.emit('connection_error', { code: ERROR_CODES.ALREADY_CONNECTED, message: 'Already connected' });
-        return;
-      }
-      // If rejected, allow new request
-    }
-
-    const connection = await Connection.create({
-      sender: userId,
-      receiver: receiverId,
-      status: 'pending',
-    });
-
-    const sender = await User.findById(userId).select('name avatar bio');
 
     io.to(receiverId).emit('connection_request', {
       connectionId: connection._id,
