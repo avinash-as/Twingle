@@ -6,6 +6,9 @@ import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
 import 'dotenv/config';
 
+import { validateEnv } from './config/validateEnv.js';
+validateEnv();
+
 import connectDB, { checkDBHealth, disconnectDB, isDBConnected } from './config/db.js';
 import { config } from './config/env.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';

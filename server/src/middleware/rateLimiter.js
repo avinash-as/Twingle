@@ -17,7 +17,7 @@ const createLimiter = (options) => {
     },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => req.ip,
+    keyGenerator: (req) => (req.user?._id ? `user:${req.user._id}` : req.ip),
     skip: (req, res) => {
       // Skip rate limiting for health checks
       return req.path === '/health';

@@ -2,6 +2,7 @@ import User from '../models/User.js';
 import Connection from '../models/Connection.js';
 import LocationHistory from '../models/LocationHistory.js';
 import { AppError, ERROR_CODES, asyncHandler } from '../utils/errors.js';
+import { pubClient } from '../config/redis.js';
 
 const formatDistance = (meters) => {
   if (meters < 1000) {
@@ -93,6 +94,23 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
   // Validate coordinates
   if (isNaN(userLat) || isNaN(userLon) || userLat < -90 || userLat > 90 || userLon < -180 || userLon > 180) {
     throw new AppError(ERROR_CODES.VALIDATION_ERROR, 'Invalid coordinates', 400);
+  }
+
+  // Redis cache for nearby results (30s TTL) when configured
+  const redisEnabled = !!(process.env.REDIS_HOST || process.env.REDIS_URL);
+  const cacheKey = redisEnabled
+    ? `nearby:${req.user._id}:${userLat.toFixed(3)}:${userLon.toFixed(3)}:${maxDist}:${page}:${limit}:${gender || ''}:${ageMin || ''}:${ageMax || ''}:${interests || ''}`
+    : null;
+
+  if (cacheKey) {
+    try {
+      const cached = await pubClient.get(cacheKey);
+      if (cached) {
+        return res.json(JSON.parse(cached));
+      }
+    } catch (e) {
+      // ignore cache errors
+    }
   }
 
   // Build discovery filter query
@@ -238,7 +256,7 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
     };
   });
 
-  res.json({
+  const responsePayload = {
     users: nearbyUsers,
     pagination: {
       page: pageNum,
@@ -246,7 +264,17 @@ export const getNearbyUsers = asyncHandler(async (req, res) => {
       total,
       pages: Math.ceil(total / limitNum),
     },
-  });
+  };
+
+  if (cacheKey) {
+    try {
+      await pubClient.set(cacheKey, JSON.stringify(responsePayload), 'EX', 30);
+    } catch (e) {
+      // ignore cache errors
+    }
+  }
+
+  res.json(responsePayload);
 });
 
 export const getUserProfile = asyncHandler(async (req, res) => {
