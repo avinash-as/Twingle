@@ -3,7 +3,7 @@
  * Handles background sync, push notifications, and offline caching
  */
 
-const CACHE_NAME = 'twingle-v4';
+const CACHE_NAME = 'twingle-v5';
 const STATIC_ASSETS = [
   '/favicon.svg',
   '/manifest.json',
