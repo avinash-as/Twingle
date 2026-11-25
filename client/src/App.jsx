@@ -29,9 +29,11 @@ function MainLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#08090A]">
-      <Header onMenuClick={() => setMenuOpen(!menuOpen)} />
-      <div className="flex-1 flex flex-col pt-16 pb-20 lg:pb-0">
-        <Outlet />
+      <div className="w-full max-w-screen-sm mx-auto flex-1 flex flex-col">
+        <Header onMenuClick={() => setMenuOpen(!menuOpen)} />
+        <div className="flex-1 flex flex-col pt-16 pb-20 lg:pb-0">
+          <Outlet />
+        </div>
       </div>
       {showOnboarding && (
         <OnboardingModal

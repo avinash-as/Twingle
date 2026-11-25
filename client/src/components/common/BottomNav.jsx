@@ -12,6 +12,7 @@ export default function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#08090A]/95 backdrop-blur-md border-t border-neutral-800/50 lg:hidden">
+      <div className="w-full max-w-screen-sm mx-auto">
       <div className="grid grid-cols-5">
         {navItems.map((item) => (
           <NavLink
@@ -30,6 +31,7 @@ export default function BottomNav() {
             <span className="text-xs font-medium">{item.label}</span>
           </NavLink>
         ))}
+      </div>
       </div>
     </nav>
   );
