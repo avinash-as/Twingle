@@ -1,4 +1,4 @@
-import { Menu, X, Bell, MessageSquare, User, LogOut, Moon, Sun, Settings } from 'lucide-react';
+import { Menu, X, Bell, MessageSquare, User, LogOut, Moon, Sun, Settings, Home, Radar, Map, Heart } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Avatar from '../ui/Avatar';
@@ -33,14 +33,9 @@ export default function Header({ onMenuClick }) {
     <header className="fixed top-0 left-0 right-0 z-40 bg-[#08090A]/80 backdrop-blur-md border-b border-neutral-800/50">
       <div className="max-w-2xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={onMenuClick} className="lg:hidden">
-              <Menu className="w-6 h-6" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <img src="/icons/icon-192x192.png" alt="Twingle" className="w-8 h-8 rounded-xl object-contain" />
-              <span className="font-bold text-xl gradient-text hidden sm:block">Twingle</span>
-            </div>
+          <div className="flex items-center gap-2">
+            <img src="/icons/icon-192x192.png" alt="Twingle" className="w-8 h-8 rounded-xl object-contain" />
+            <span className="font-bold text-xl gradient-text hidden sm:block">Twingle</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -69,6 +64,21 @@ export default function Header({ onMenuClick }) {
                           </div>
                         </div>
                         <nav className="p-2 space-y-1">
+                          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-800/50 text-neutral-300" onClick={() => { setShowProfileMenu(false); window.location.href = '/home'; }}>
+                            <Home className="w-5 h-5" /> Home
+                          </button>
+                          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-800/50 text-neutral-300" onClick={() => { setShowProfileMenu(false); window.location.href = '/discover'; }}>
+                            <Heart className="w-5 h-5" /> Discover
+                          </button>
+                          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-800/50 text-neutral-300" onClick={() => { setShowProfileMenu(false); window.location.href = '/scan'; }}>
+                            <Radar className="w-5 h-5" /> Nearby
+                          </button>
+                          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-800/50 text-neutral-300" onClick={() => { setShowProfileMenu(false); window.location.href = '/map'; }}>
+                            <Map className="w-5 h-5" /> Map
+                          </button>
+                          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-800/50 text-neutral-300" onClick={() => { setShowProfileMenu(false); window.location.href = '/chats'; }}>
+                            <MessageSquare className="w-5 h-5" /> Chats
+                          </button>
                           <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-800/50 text-neutral-300" onClick={() => { setShowProfileMenu(false); window.location.href = '/profile'; }}>
                             <User className="w-5 h-5" /> Profile
                           </button>
