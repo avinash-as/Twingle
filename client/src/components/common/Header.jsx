@@ -52,14 +52,13 @@ export default function Header({ onMenuClick }) {
 
                 <div className="relative">
                   <Button variant="ghost" size="sm" onClick={() => setShowProfileMenu(!showProfileMenu)} className="gap-2 px-3">
-                    <Avatar src={user?.avatar} name={user?.name} size="sm" status={user?.isOnline ? 'online' : 'offline'} />
-                    <span className="hidden sm:block font-medium">{user?.name}</span>
+                    <Menu className="w-6 h-6" />
                   </Button>
 
                   {showProfileMenu && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setShowProfileMenu(false)} />
-                      <div className="absolute right-0 top-full mt-2 w-56 card z-20 animate-in">
+                      <div className="absolute right-0 top-full mt-2 w-60 card z-20 animate-in">
                         <div className="p-2 border-b border-neutral-800">
                           <div className="flex items-center gap-3 px-2 py-2">
                             <Avatar src={user?.avatar} name={user?.name} size="md" status={user?.isOnline ? 'online' : 'offline'} />
@@ -69,14 +68,17 @@ export default function Header({ onMenuClick }) {
                             </div>
                           </div>
                         </div>
-                        <Button variant="outline" size="sm" className="w-full mx-2 mb-2 justify-start gap-2" onClick={() => {}}>
-                          <Settings className="w-4 h-4" />
-                          Settings
-                        </Button>
-                        <Button variant="danger" size="sm" className="w-full mx-2 mb-2 justify-start gap-2" onClick={logout}>
-                          <LogOut className="w-4 h-4" />
-                          Logout
-                        </Button>
+                        <nav className="p-2 space-y-1">
+                          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-800/50 text-neutral-300" onClick={() => { setShowProfileMenu(false); window.location.href = '/profile'; }}>
+                            <User className="w-5 h-5" /> Profile
+                          </button>
+                          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-800/50 text-neutral-300" onClick={() => { setShowProfileMenu(false); }}>
+                            <Settings className="w-5 h-5" /> Settings
+                          </button>
+                          <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-neutral-800/50 text-red-400" onClick={() => { setShowProfileMenu(false); logout(); }}>
+                            <LogOut className="w-5 h-5" /> Logout
+                          </button>
+                        </nav>
                       </div>
                     </>
                   )}
