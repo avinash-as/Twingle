@@ -35,13 +35,13 @@ export function SocketProvider({ children }) {
 
     newSocket.on('connect', () => {
       if (!isMountedRef.current) return;
-      console.log('Socket connected:', newSocket.id);
+      // socket connected
       setIsConnected(true);
     });
 
     newSocket.on('disconnect', (reason) => {
       if (!isMountedRef.current) return;
-      console.log('Socket disconnected:', reason);
+      // socket disconnected
       setIsConnected(false);
     });
 

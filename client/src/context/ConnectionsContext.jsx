@@ -22,7 +22,7 @@ export function ConnectionsProvider({ children }) {
     fetchPendingRequests();
 
     const handleConnectionRequest = (data) => {
-      console.log('Received connection request:', data);
+      // connection request received
       setPendingRequests((prev) => [
         ...(Array.isArray(prev) ? prev : []),
         {
