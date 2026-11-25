@@ -18,9 +18,7 @@ export default function SplashScreen({ onFinish }) {
         fading ? 'opacity-0' : 'opacity-100'
       }`}
     >
-      <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary-600 to-accent-500 flex items-center justify-center shadow-2xl animate-glow-pulse">
-        <span className="text-4xl font-extrabold text-white">T</span>
-      </div>
+      <img src="/icons/icon-512x512.png" alt="Twingle" className="w-24 h-24 rounded-3xl shadow-2xl animate-glow-pulse object-contain" />
       <h1 className="mt-6 text-3xl font-extrabold gradient-text">Twingle</h1>
       <p className="mt-2 text-neutral-500 text-sm">Discover people nearby</p>
       <div className="mt-8 flex gap-2">
