@@ -152,6 +152,10 @@ app.use(cookieParser()); // Parse cookies for refresh token
 // Global API rate limiter (fallback for routes without specific limiters)
 app.use('/api/', apiLimiter);
 
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', service: 'twingle-backend' });
+});
+
 app.get('/api/health', async (req, res) => {
   const dbHealth = await checkDBHealth();
   const redisHealthy = process.env.REDIS_HOST ? 'configured' : 'not configured';
