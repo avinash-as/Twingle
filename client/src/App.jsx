@@ -4,6 +4,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import Header from './components/common/Header';
 import BottomNav from './components/common/BottomNav';
 import OnboardingModal from './components/common/OnboardingModal';
+import InstallPWA from './components/common/InstallPWA';
 import { ConnectionsProvider } from './context/ConnectionsContext';
 import ErrorBoundary from './components/common/ErrorBoundary';
 import LoadingSpinner from './components/common/LoadingSpinner';
@@ -44,6 +45,7 @@ function MainLayout() {
         />
       )}
       <BottomNav />
+      <InstallPWA />
       {menuOpen && (
         <div className="fixed inset-0 z-30 lg:hidden">
           <div className="absolute inset-0 bg-black/50" onClick={() => setMenuOpen(false)} />
