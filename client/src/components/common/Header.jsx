@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Avatar from '../ui/Avatar';
 import Button from '../ui/Button';
+import NotificationBell from './NotificationBell';
 
 export default function Header({ onMenuClick }) {
   const { user, logout, isAuthenticated } = useAuth();
@@ -44,6 +45,8 @@ export default function Header({ onMenuClick }) {
                 <Button variant="ghost" size="sm" onClick={() => setDarkMode(!darkMode)}>
                   {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </Button>
+
+                <NotificationBell />
 
                 <div className="relative">
                   <Button variant="ghost" size="sm" onClick={() => setShowProfileMenu(!showProfileMenu)} className="gap-2 px-3">
